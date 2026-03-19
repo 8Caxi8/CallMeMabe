@@ -1,5 +1,17 @@
 [
   {
+    "prompt": "Calculate the squares of the array [2, 5, 6, 8]",
+    "name": "fn_map_squares",
+    "parameters": {
+      "input_list": [
+        2,
+        5,
+        6,
+        8
+      ]
+    }
+  },
+  {
     "prompt": "What is the sum of 2 and 3?",
     "name": "fn_add_numbers",
     "parameters": {
@@ -19,7 +31,7 @@
     "prompt": "Greet shrek",
     "name": "fn_greet",
     "parameters": {
-      "name": "shrek"
+      "name": "name"
     }
   },
   {
@@ -62,7 +74,7 @@
     "name": "fn_substitute_string_with_regex",
     "parameters": {
       "source_string": "Hello 34 I'm 233 years old",
-      "regex": "34",
+      "regex": "34|233",
       "replacement": "NUMBERS"
     }
   },
@@ -71,8 +83,8 @@
     "name": "fn_substitute_string_with_regex",
     "parameters": {
       "source_string": "Programming is fun",
-      "regex": "a",
-      "replacement": "asterisk"
+      "regex": "([aeiouAEIOU])",
+      "replacement": "***"
     }
   },
   {

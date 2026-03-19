@@ -83,7 +83,7 @@ def get_parameters(func: FunctionsDefinition,
     )
 
     starting_string = (
-        "Choosing the correct input:\n"
+        "Extract the parameters from the prompt:\n"
         f"Function to use: {func.name}\n"
         f"{parameters_display}\n"
         f"Prompt: {prompt}\n"
@@ -97,7 +97,8 @@ def get_parameters(func: FunctionsDefinition,
         parameters.update({parameters_list[i]: []})
 
         if func.parameters[parameters_list[i]].type == ParameterType.ARRAY:
-            starting_string += f"\n- {parameters_list[i]}: ["
+            parameters[parameters_list[i]].append("[")
+            starting_string += f"\n- {parameters_list[i]}: "
             end_tokens = {"]"}
         else:
             starting_string += f"\n- {parameters_list[i]}: '"
@@ -108,34 +109,45 @@ def get_parameters(func: FunctionsDefinition,
                 starting_string + "".join(
                     parameters[parameters_list[i]])).squeeze().tolist()
             logits = model.get_logits_from_input_ids(input_ids)
+            print(starting_string + "".join(
+                    parameters[parameters_list[i]]))
 
             if max(logits) == float("-inf"):
                 break
 
-            token_id = logits.index(max(logits))
-            token_str = id_to_token.get(
-                token_id, "").replace("Ġ", " ").replace("ĉ", "")
+            while True:
+                token_id = logits.index(max(logits))
+                token_str = id_to_token.get(
+                    token_id, "").replace("Ġ", " "
+                                          ).replace("ĉ", "").replace("Ċ", "")
 
-            print(token_str)
+                if token_str in end_tokens:
+                    break
 
-            if max(logits) == float("-inf"):
+                if func.parameters[parameters_list[i]].type == ParameterType.NUMBER or \
+                   func.parameters[parameters_list[i]].type == ParameterType.INTEGER and \
+                   token_str not in {".", ","}:
+                    try:
+                        float(token_str)
+                    except ValueError:
+                        logits[token_id] = float("-inf")
+                        continue
+
+                parameters[parameters_list[i]].append(token_str)
                 break
 
             if token_str in end_tokens:
                 break
 
-            parameters[parameters_list[i]].append(token_str)
-            logits[token_id] = float("-inf")
-
-            print(starting_string)
-
         if func.parameters[parameters_list[i]].type == ParameterType.ARRAY:
             starting_string += "".join(
                     parameters[parameters_list[i]]) + "]"
+            parameters[parameters_list[i]].append("]")
         else:
             starting_string += "".join(
                     parameters[parameters_list[i]]) + "'"
         print(starting_string)
+        print(parameters[parameters_list[i]])
         i += 1
 
     return format_parameters(func, parameters)
