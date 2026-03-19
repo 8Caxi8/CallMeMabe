@@ -1,54 +1,33 @@
-from .validation_models import FunctionsDefinition, CallingTests
+from .validation_models import FunctionsDefinition, CallingTests, ParameterType
+from .shell_prints import print_header, print_outcome
+from .format_data import format_parameters, format_output
 from llm_sdk import Small_LLM_Model
 import json
+from typing import Any
 
 
 def main_loop(valid_func: list[FunctionsDefinition],
-              valid_calls: list[CallingTests]) -> None:
+              valid_calls: list[CallingTests]) -> list[dict]:
+    output: list[dict] = []
     model = Small_LLM_Model(device="cpu")
-    prompt =  valid_calls[9].prompt
 
     with open(model.get_path_to_vocab_file()) as f:
         vocab = json.load(f)
     id_to_token = {value: key for key, value in vocab.items()}
 
-    func_name = get_function_name(valid_func,
-                                  prompt, id_to_token,
-                                  model)
+    for i in range(len(valid_calls)):
+        prompt = valid_calls[i].prompt
+        print_header(prompt)
 
-    func = next(func for func in valid_func if func.name == func_name)
+        func_name = get_function_name(valid_func, prompt, id_to_token, model)
+        function = next(func for func in valid_func if func.name == func_name)
 
-    parameters = "\n".join(
-        f"- {key}: {value.type}"
-        for key, value in func.parameters.items()
-    )
+        parameters = get_parameters(function, prompt, id_to_token, model)
+        output.append(format_output(prompt, function.name, parameters))
 
-    starting_string = (
-        "Choosing the correct input:\n"
-        f"Function to use: {func_name}\n"
-        f"{parameters}\n"
-        f"Prompt: {prompt}\n"
-        f"parameters:"
-    )
-    parameters_list = [key for key in func.parameters.keys()]
-    i = 0
+        print_outcome(output[i])
 
-    starting_string += f"\n- {parameters_list[i]}: "
-
-    input_ids = model.encode(starting_string).squeeze().tolist()
-    logits = model.get_logits_from_input_ids(input_ids)
-
-    print(starting_string)
-
-    top_5 = sorted(range(len(logits)), key=lambda i: logits[i], reverse=True)[:5]
-    for token_id in top_5:
-        token_str = id_to_token.get(token_id, "")
-        print(f"Token ID: {token_id} | Score: {logits[token_id]:.4f} | String: '{token_str}'")
-
-    """ while i < len(func.parameters):
-        starting_string +  """
-
-    print(func_name)
+    return output
 
 
 def get_function_name(valid_func: list[FunctionsDefinition],
@@ -74,6 +53,10 @@ def get_function_name(valid_func: list[FunctionsDefinition],
 
         while True:
             token_id = logits.index(max(logits))
+
+            if max(logits) == float("-inf"):
+                break
+
             token_str = id_to_token.get(
                 token_id, "").replace("Ġ", "").replace("ĉ", "")
 
@@ -88,3 +71,78 @@ def get_function_name(valid_func: list[FunctionsDefinition],
             logits[token_id] = float("-inf")
 
     return "fn_" + func_name
+
+
+def get_parameters(func: FunctionsDefinition,
+                   prompt: str,
+                   id_to_token: dict[int, str],
+                   model: Small_LLM_Model) -> dict[str, Any]:
+    parameters_display = "\n".join(
+        f"- {key}: {value.type}"
+        for key, value in func.parameters.items()
+    )
+
+    starting_string = (
+        "Choosing the correct input:\n"
+        f"Function to use: {func.name}\n"
+        f"{parameters_display}\n"
+        f"Prompt: {prompt}\n"
+        f"parameters:"
+    )
+    parameters_list = [key for key in func.parameters.keys()]
+    parameters: dict[str, list[str]] = {}
+
+    i = 0
+    while i < len(parameters_list):
+        parameters.update({parameters_list[i]: []})
+
+        if func.parameters[parameters_list[i]].type == ParameterType.ARRAY:
+            starting_string += f"\n- {parameters_list[i]}: ["
+            end_tokens = {"]"}
+        else:
+            starting_string += f"\n- {parameters_list[i]}: '"
+            end_tokens = {"'", "\""}
+
+        while True:
+            input_ids = model.encode(
+                starting_string + "".join(
+                    parameters[parameters_list[i]])).squeeze().tolist()
+            logits = model.get_logits_from_input_ids(input_ids)
+
+            if max(logits) == float("-inf"):
+                break
+
+            token_id = logits.index(max(logits))
+            token_str = id_to_token.get(
+                token_id, "").replace("Ġ", " ").replace("ĉ", "")
+
+            print(token_str)
+
+            if max(logits) == float("-inf"):
+                break
+
+            if token_str in end_tokens:
+                break
+
+            parameters[parameters_list[i]].append(token_str)
+            logits[token_id] = float("-inf")
+
+            print(starting_string)
+
+        if func.parameters[parameters_list[i]].type == ParameterType.ARRAY:
+            starting_string += "".join(
+                    parameters[parameters_list[i]]) + "]"
+        else:
+            starting_string += "".join(
+                    parameters[parameters_list[i]]) + "'"
+        print(starting_string)
+        i += 1
+
+    return format_parameters(func, parameters)
+
+
+# top_5 = sorted(range(len(logits)), key=lambda i: logits[i], reverse=True)[:5]
+# for token_id in top_5:
+#     token_str = id_to_token.get(token_id, "")
+#     print(f"Token ID: {token_id} | Score: {logits[token_id]:.4f} |
+#       String: '{token_str}'")

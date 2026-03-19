@@ -1,4 +1,5 @@
 from typing import Any
+import os
 import sys
 import json
 
@@ -31,6 +32,7 @@ def parser() -> tuple[list[dict[Any, Any]], list[dict[Any, Any]], str]:
 
     functions = load_json(functions_path)
     input_file = load_json(input_file_path)
+    os.makedirs(os.path.dirname(output_file_path), exist_ok=True)
 
     return functions, input_file, output_file_path
 
@@ -45,3 +47,8 @@ def load_json(path: str) -> list[dict]:
         raise ValueError(f"Invalid JSON format in: {path}")
 
     return file
+
+
+def output_json(output: list[dict], path: str) -> None:
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(output, f, indent=2)

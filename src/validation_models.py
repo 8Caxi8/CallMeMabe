@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field, model_validator, ValidationError
 from pydantic_core import PydanticCustomError as Pe
+from enum import Enum
 import sys
 
 
@@ -7,17 +8,18 @@ class CallingTests(BaseModel):
     prompt: str = Field(min_length=3)
 
 
+class ParameterType(str, Enum):
+    STRING = "string"
+    NUMBER = "number"
+    BOOLEAN = "boolean"
+    INTEGER = "integer"
+    ARRAY = "array"
+    OBJECT = "object"
+    NULL = "null"
+
+
 class Parameter(BaseModel):
-    type: str
-
-    @model_validator(mode='after')
-    def unknown_type(self) -> "Parameter":
-        known = {"string", "number", "boolean", "integer",
-                 "array", "object", "null"}
-        if self.type not in known:
-            sys.stderr.write(f"[WARNING]: Unknown type '{self.type}'\n")
-
-        return self
+    type: ParameterType
 
 
 class FunctionsDefinition(BaseModel):

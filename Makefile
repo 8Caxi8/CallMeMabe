@@ -1,5 +1,11 @@
 MAIN = src
 
+ifeq ($(wildcard /sgoinfre/$(USER)),/sgoinfre/$(USER))
+    export UV_CACHE_DIR := /sgoinfre/$(USER)/.uv-cache
+    export HF_HOME := /sgoinfre/$(USER)/.cache/huggingface
+    export TRANSFORMERS_CACHE := /sgoinfre/$(USER)/.cache/huggingface
+endif
+
 install:
 	uv sync
 

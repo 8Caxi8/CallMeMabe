@@ -67,5 +67,17 @@
     "returns": {
       "type": "string"
     }
+  },
+  {
+    "name": "fn_map_squares",
+    "description": "Calculate and returns a map of the square number of an array",
+    "parameters": {
+      "input_list": {
+        "type": "array"
+      }
+    },
+    "returns": {
+      "type": "array"
+    }
   }
 ]
