@@ -1,37 +1,47 @@
+from typing import Any
 import sys
 import json
 
 
-def parser() -> tuple[str, str, str]:
+def parser() -> tuple[list[dict[Any, Any]], list[dict[Any, Any]], str]:
     args = sys.argv[1:]
+    i = 0
 
-    functions = "data/input/functions_definition.json"
-    input_file = "data/input/function_calling_tests.json"
-    output_file = "data/output/function_calls.json"
+    functions_path = "data/input/functions_definition.json"
+    input_file_path = "data/input/function_calling_tests.json"
+    output_file_path = "data/output/function_calls.json"
 
-    for i, arg in enumerate(args):
-        if arg == "--functions_definition":
+    while i < len(args):
+        if args[i] == "--functions_definition":
             if i + 1 >= len(args):
-                raise ValueError(f"Missing value for {arg}")
-            functions = args[i + 1]
-        elif arg == "--input":
+                raise ValueError(f"Missing value for {args[i]}")
+            i += 1
+            functions_path = args[i]
+        elif args[i] == "--input":
             if i + 1 >= len(args):
-                raise ValueError(f"Missing value for {arg}")
-            input_file = args[i + 1]
-        elif arg == "--output":
+                raise ValueError(f"Missing value for {args[i]}")
+            i += 1
+            input_file_path = args[i]
+        elif args[i] == "--output":
             if i + 1 >= len(args):
-                raise ValueError(f"Missing value for {arg}")
-            output_file = args[i + 1]
+                raise ValueError(f"Missing value for {args[i]}")
+            i += 1
+            output_file_path = args[i]
+        i += 1
 
-    return functions, input_file, output_file
+    functions = load_json(functions_path)
+    input_file = load_json(input_file_path)
+
+    return functions, input_file, output_file_path
 
 
-def validate_json(*paths: str) -> None:
-    for path in paths:
-        try:
-            with open(path, encoding="utf-8") as f:
-                json.load(f)
-        except FileNotFoundError:
-            raise ValueError(f"File not found: {path}")
-        except json.JSONDecodeError:
-            raise ValueError(f"Invalid JSON format in: {path}")
+def load_json(path: str) -> list[dict]:
+    try:
+        with open(path, encoding="utf-8") as f:
+            file = json.load(f)
+    except FileNotFoundError:
+        raise ValueError(f"File not found: {path}")
+    except json.JSONDecodeError:
+        raise ValueError(f"Invalid JSON format in: {path}")
+
+    return file

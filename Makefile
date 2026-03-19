@@ -1,11 +1,10 @@
-REQ = requirements.txt
 MAIN = src
 
 install:
 	uv sync
 
 run:
-	uv run python $(MAIN)
+	uv run python -m $(MAIN)
 
 debug:
 	uv run python -m pdb $(MAIN)

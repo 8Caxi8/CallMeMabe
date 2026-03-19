@@ -1,12 +1,13 @@
 import sys
-from .parser import parser, validate_json
+from .parser import parser
+from .validation_models import get_validated_model
+from .llm_loop import main_loop
 
 
 def main() -> None:
 
     try:
-        functions, input_file, output_file = parser()
-        validate_json(functions, input_file)
+        functions, input_file, output_file_path = parser()
 
     except ValueError as e:
         print(e)
@@ -15,6 +16,8 @@ def main() -> None:
     except Exception as e:
         print(f"Unexpected error: {e}")
         sys.exit(1)
+
+    main_loop(*get_validated_model(functions, input_file))
 
 
 if __name__ == "__main__":

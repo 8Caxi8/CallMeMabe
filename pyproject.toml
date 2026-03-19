@@ -6,5 +6,10 @@ dependencies = [
     "numpy",
     "pydantic",
     "flake8",
-    "mypy"
+    "mypy",
+	"llm_sdk",
+	"accelerate"
 ]
+
+[tool.uv.sources]
+llm_sdk = { path = "llm_sdk" }
