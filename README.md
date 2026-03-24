@@ -2,9 +2,11 @@
 
 # Description
 
-The objective of this project is to introduce **Large Language Models** (*LLMs*), understanding how they work and how can they be used to generating human language. In this project we will use a relatively small language model, the **Qwen3-0.6B**, which is a compact, open-source causal language model developed by Alibaba Cloud, with only 600 million parameters. Compared to other **7B+** models, **Qwen3-0.6B** is significantly faster, capable of running on low-power, consumer edge hardware, or in local environments where **7B+** models cannot fit.
+The objective of this project is to explore how **Large Language Models** (*LLMs*) work and how they can be used to transform natural language into structured, machine-executable outputs.
 
-On the other hand, since this model is not a "smart" model, some constrained decoding had to be used to produce a **>90%** accuracy for a set of prompts and a **100%** accuracy for generating json files as the output for the function calls.
+In this project we will use a relatively small language model, the **Qwen3-0.6B**, which is a compact, open-source causal language model developed by Alibaba Cloud, with only 600 million parameters. Compared to other **7B+** models, **Qwen3-0.6B** is significantly faster, capable of running on low-power, consumer edge hardware, or in local environments where **7B+** models cannot fit.
+
+On the other hand, due to the limited size of the model, constrained decoding is applied to ensure reliable and structured outputs, producing a **>90%** accuracy for a set of prompts and a **100%** accuracy for `JSON` generated files as the output for the function calls.
 
 Next is an example of a function call output for a given prompt:
 ```bash
@@ -50,8 +52,8 @@ uv run python -m src [--functions_definition <...> ...]
 ```
 
 # Code
-## Algorithm explanation
-To ensure **100%** json output I didnt use the llm to generate the json directly. Instead I use it to generate the required fields, like the function name and all the function parameters, and then I used an `output_format` to convert the output for a json compatible output.
+## Algorithm Explanation
+- To guarantee **100%** valid `JSON` output, I apply constrained decoding to all semantic elements (function name and parameters), and then assemble the final `JSON` structure deterministically. This avoids structural errors from the language model.
 
 So in short for each prompt I loop for:
 ```bash
@@ -62,12 +64,28 @@ So in short for each prompt I loop for:
 ```
 where output is a `list` and the result is the `dict` with each key being the `prompt`, `name` and the `parameters`.
 
-If any error is encountered when getting any of the elements or in the format section, I discard this result and move to the next.
+- If any error is encountered when getting any of the elements or in the format section, I discard this result and move to the next.
 
-## Design decisions
-- The biggest decision was to use the llm just to output the function name and the parameters extracted from the prompt, and not use it to generate the whole json file. This was mainly because of the previous discussed limitations of this small language model.
 
-- Also, I used the `pydantic` model to ensure each of the functions were well defined with all the parameters and correct types for a json file. This also ensure the main loop was working, since for example I had to use the function descriptions for the llm usage.
+### Constrained Decoding Strategy
+At each generation step:
+- The model produces logits for all tokens
+- Invalid tokens (those not matching the expected structure or type) are masked by setting their logits to `-inf`
+- The next token is selected only from the remaining valid tokens
+
+This guarantees that:
+- Function names always match available definitions
+- Parameter values respect their expected types
+- Invalid tokens are never selected
+
+---
+
+This approach ensures that all generated outputs are both semantically valid (through constrained decoding) and structurally valid (through deterministic formatting).
+
+## Design Decisions
+- The biggest decision was to use the llm just to output the function name and the parameters extracted from the prompt.
+
+- Also, I used the `pydantic` model to ensure each of the functions were well defined with all the parameters and correct types for a `JSON` file. This also ensure the main loop was working, since for example I had to use the function descriptions for the llm usage.
 
 - So the key for using the `llm_sdk` package was to give the model a detailed message of was requested, in the case of the `get_function_name`, the initial message given to the model is:
 ```bash
@@ -89,7 +107,9 @@ starting_string = (
 ```
 Notice for example the need to `(ended with \")` So the llm knows it needs to end the guessed parameter with the `"` token, and I use this to stop the llm loop.
 
-- For each parameter, a type-specifi getter is called:
+- Although the prompt is used to guide the model semantically, I enforce correctness through constrained decoding rather than relying  on the model to produce valid outputs autonomously.
+
+- For each parameter, a type-specific getter is called:
 	- `STRING` - generates until closing `"`.
 	- `NUMBER` - only allows numeric tokens and `.`, generates until closing `"`
 	- `INTEGER` - only allows numeric tokens without `.`, generates until closing `"`
@@ -98,12 +118,12 @@ Notice for example the need to `(ended with \")` So the llm knows it needs to en
 	- `BOOLEAN` - constrains output to only `true`/`false` tokens
 	- `NULL` - returns `None` directly, no generation needed
 
-## Performance analysis
-For the speed, the model was relatively fast for guessing the solutions. As for accuracy, I needed several tests, with several initial `starting_string` to ensure the model was guessing right. The function name was easy to retrieve, but the parameters were more tricky. 
+## Performance Analysis
+- For the speed, the model was relatively fast for guessing the solutions. As for accuracy, I needed several tests, with several initial `starting_string` to ensure the model was guessing right. The function name was easy to retrieve, but the parameters were more tricky. 
 
-I made several tests for a boolean input, and the model here failed completly, since it returns true all the time. I even added a `(true/false)` statement at the beginning of guessing the right input, but the highest token is alwas `true` even when I give it a false in the prompt to help it guess. So if I wanted to use make this more reliable in this section I should add a set of negative tokens and help the model to use this set to see if in the prompt any keywords were in this set, and in this manner it should look for negative keywords and return `false`. But as stated in the subject I should use the `llm`, not *'with heuristics or any other sort of medieval magic'*
+- Boolean extraction proved challenging due to model bias toward `"true"`. This highlights limitations of small models and the importance of stronger constraints in such cases. I even added a `(true/false)` statement at the beginning of guessing the right input, but the highest token is always `true` even when I give it a false in the prompt to help it guess. So if I wanted to use make this more reliable in this section I should add a set of negative tokens and help the model to use this set to see if in the prompt any keywords were in this set, and in this manner it should look for negative keywords and return `false`. But as stated in the subject I should use the `llm`, not *'with heuristics or any other sort of medieval magic'*
 
-## Challenges faced
+## Challenges Faced
 - The challenges I had were mainly in the getting the correct parameters from the prompt. I ultimately used a simple starting string for each parameter, where I used a display of each parameter, the prompt next (and the order matters, since the llm will have this prompt close to the guessed answer), and the parameter to be guessed. Here I also filter the parameter to be guessed by the `llm` if there is more than one. So, for example fo the regex function:
 ```bash
 [
@@ -159,10 +179,9 @@ uv run python -m src \
 ## Resources
 
 - [Qwen3 Model](https://huggingface.co/Qwen/Qwen3-0.6B)
-- [Constrained Decoding Paper](https://arxiv.org/abs/2104.07559)
 - [JSON Schema Types](https://json-schema.org/understanding-json-schema/reference/type)
 - [Pydantic Documentation](https://docs.pydantic.dev)
-- [BPE Tokenization](https://huggingface.co/learn/nlp-course/chapter6/5)
+- [LLM Explained](https://www.youtube.com/watch?v=LPZh9BOjkQs&t=9s)
 
 ## AI Usage
 - Claude was used to:
