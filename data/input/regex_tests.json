@@ -1,0 +1,32 @@
+[
+  {
+    "prompt": "Replace all digits in 'abc123def456' with X"
+  },
+  {
+    "prompt": "Remove all spaces from 'Hello World foo bar'"
+  },
+  {
+    "prompt": "Replace all uppercase letters in 'Hello World' with lowercase a"
+  },
+  {
+    "prompt": "Substitute all punctuation in 'Hello, World! How are you?' with dash"
+  },
+  {
+    "prompt": "Replace the word 'dog' with 'cat' in 'The dog sat on the dog mat'"
+  },
+  {
+    "prompt": "Remove all vowels from 'Hello World'"
+  },
+  {
+    "prompt": "Replace all whitespace in 'foo   bar   baz' with single space"
+  },
+  {
+    "prompt": "Substitute all occurrences of 'foo' with 'bar' in 'foo is foo and foo'"
+  },
+  {
+    "prompt": "Substitute all numbers in 'I have 3 cats and 12 dogs' with NUM"
+  },
+  {
+    "prompt": "Remove all special characters from 'Hello@World#2024!'"
+  }
+]

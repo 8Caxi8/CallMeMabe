@@ -1,0 +1,24 @@
+[
+  {
+    "prompt": "Format the address {'street': '123 Main St', 'city': 'Springfield', 'country': 'USA'}",
+    "name": "fn_get_square_root",
+    "parameters": {
+      "a": 123.0
+    }
+  },
+  {
+    "prompt": "Format the address {'street': 'Rua Augusta', 'city': 'Lisbon', 'country': 'Portugal'}",
+    "name": "fn_get_square_root",
+    "parameters": {
+      "a": 1234567890.0
+    }
+  },
+  {
+    "prompt": "Format this address object {'street': 'Baker Street', 'city': 'London', 'zip': 'NW1 6XE'}",
+    "name": "fn_add_numbers",
+    "parameters": {
+      "a": 1234567890.0,
+      "b": 66.0
+    }
+  }
+]

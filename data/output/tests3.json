@@ -1,0 +1,142 @@
+[
+  {
+    "prompt": "What is the sum of 2 and 3?",
+    "name": "fn_add_numbers",
+    "parameters": {
+      "a": 2.0,
+      "b": 3.0
+    }
+  },
+  {
+    "prompt": "Add 100 and 200",
+    "name": "fn_add_numbers",
+    "parameters": {
+      "a": 100.0,
+      "b": 200.0
+    }
+  },
+  {
+    "prompt": "What is 15 plus 27?",
+    "name": "fn_add_numbers",
+    "parameters": {
+      "a": 15.0,
+      "b": 27.0
+    }
+  },
+  {
+    "prompt": "Greet shrek",
+    "name": "fn_get_square_root",
+    "parameters": {
+      "a": 1234567890.0
+    }
+  },
+  {
+    "prompt": "Greet john",
+    "name": "fn_greet",
+    "parameters": {
+      "name": "john"
+    }
+  },
+  {
+    "prompt": "Say hello to Alice",
+    "name": "fn_get_square_root",
+    "parameters": {
+      "a": 1234567890.0
+    }
+  },
+  {
+    "prompt": "Reverse the string 'hello'",
+    "name": "fn_reverse_string",
+    "parameters": {
+      "s": "hello"
+    }
+  },
+  {
+    "prompt": "Reverse the string 'world'",
+    "name": "fn_reverse_string",
+    "parameters": {
+      "s": "world"
+    }
+  },
+  {
+    "prompt": "Flip the word 'python'",
+    "name": "fn_reverse_string",
+    "parameters": {
+      "s": "python"
+    }
+  },
+  {
+    "prompt": "What is the square root of 16?",
+    "name": "fn_get_square_root",
+    "parameters": {
+      "a": 16.0
+    }
+  },
+  {
+    "prompt": "Calculate the square root of 144",
+    "name": "fn_get_square_root",
+    "parameters": {
+      "a": 144.0
+    }
+  },
+  {
+    "prompt": "Replace the word 'cat' with 'dog' in 'The cat sat on the mat'",
+    "name": "fn_substitute_string_with_regex",
+    "parameters": {
+      "source_string": "The cat sat on the mat",
+      "regex": "cat",
+      "replacement": "dog"
+    }
+  },
+  {
+    "prompt": "Replace all vowels in 'Programming is fun' with asterisks",
+    "name": "fn_substitute_string_with_regex",
+    "parameters": {
+      "source_string": "Programming is fun",
+      "regex": ".*[aeiouAEIOU].*",
+      "replacement": "****"
+    }
+  },
+  {
+    "prompt": "Replace all numbers in \"Hello 34 I'm 233 years old\" with NUMBERS",
+    "name": "fn_substitute_string_with_regex",
+    "parameters": {
+      "source_string": "Hello 34 I'm 233 years old",
+      "regex": "([0-9]+)",
+      "replacement": "NUMBERS"
+    }
+  },
+  {
+    "prompt": "Substitute all occurrences of 'foo' with 'bar' in 'foo is foo and foo'",
+    "name": "fn_substitute_string_with_regex",
+    "parameters": {
+      "source_string": "foo is foo and foo",
+      "regex": "foo",
+      "replacement": "bar"
+    }
+  },
+  {
+    "prompt": "Check if 'racecar' is a palindrome ignoring case",
+    "name": "fn_is_palindrome",
+    "parameters": {
+      "s": "racecar",
+      "ignore_case": true
+    }
+  },
+  {
+    "prompt": "Is 'Hello' a palindrome with case sensitivity?",
+    "name": "fn_is_palindrome",
+    "parameters": {
+      "s": "Hello",
+      "ignore_case": true
+    }
+  },
+  {
+    "prompt": "Check if 'Madam' is a palindrome ignoring case",
+    "name": "fn_is_palindrome",
+    "parameters": {
+      "s": "Madam",
+      "ignore_case": true
+    }
+  }
+]

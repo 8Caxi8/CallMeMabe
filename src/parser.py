@@ -10,7 +10,7 @@ def parser() -> tuple[list[dict[Any, Any]], list[dict[Any, Any]], str]:
 
     functions_path = "data/input/functions_definition.json"
     input_file_path = "data/input/function_calling_tests.json"
-    output_file_path = "data/output/function_calls.json"
+    output_file_path = "data/output/function_calling_results.json"
 
     while i < len(args):
         if args[i] == "--functions_definition":
@@ -37,7 +37,7 @@ def parser() -> tuple[list[dict[Any, Any]], list[dict[Any, Any]], str]:
     return functions, input_file, output_file_path
 
 
-def load_json(path: str) -> list[dict]:
+def load_json(path: str) -> Any:
     try:
         with open(path, encoding="utf-8") as f:
             file = json.load(f)
@@ -49,6 +49,9 @@ def load_json(path: str) -> list[dict]:
     return file
 
 
-def output_json(output: list[dict], path: str) -> None:
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(output, f, indent=2)
+def output_json(output: list[dict[str, Any]], path: str) -> None:
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(output, f, indent=2, ensure_ascii=False)
+    except OSError as e:
+        raise ValueError(f"Could not write output file: {path}\n{e}")

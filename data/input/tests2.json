@@ -1,0 +1,20 @@
+[
+  {"prompt": "What is the sum of 2 and 3?"},
+  {"prompt": "Add 100 and 200"},
+  {"prompt": "What is 15 plus 27?"},
+  {"prompt": "Greet shrek"},
+  {"prompt": "Greet john"},
+  {"prompt": "Say hello to Alice"},
+  {"prompt": "Reverse the string 'hello'"},
+  {"prompt": "Reverse the string 'world'"},
+  {"prompt": "Flip the word 'python'"},
+  {"prompt": "What is the square root of 16?"},
+  {"prompt": "Calculate the square root of 144"},
+  {"prompt": "Replace the word 'cat' with 'dog' in 'The cat sat on the mat'"},
+  {"prompt": "Replace all vowels in 'Programming is fun' with asterisks"},
+  {"prompt": "Replace all numbers in \"Hello 34 I'm 233 years old\" with NUMBERS"},
+  {"prompt": "Substitute all occurrences of 'foo' with 'bar' in 'foo is foo and foo'"},
+  {"prompt": "Check if 'racecar' is a palindrome ignoring case"},
+  {"prompt": "Is 'Hello' a palindrome with case sensitivity?"},
+  {"prompt": "Check if 'Madam' is a palindrome ignoring case"}
+]

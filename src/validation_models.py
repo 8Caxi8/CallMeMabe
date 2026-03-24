@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, model_validator, ValidationError
 from pydantic_core import PydanticCustomError as Pe
 from enum import Enum
+from typing import Any
 import sys
 
 
@@ -37,7 +38,8 @@ class FunctionsDefinition(BaseModel):
         return self
 
 
-def get_validated_model(functions: list[dict], input_file: list[dict]) \
+def get_validated_model(functions: list[dict[str, Any]],
+                        input_file: list[dict[str, Any]]) \
                     -> tuple[list[FunctionsDefinition], list[CallingTests]]:
     validation = True
     validated_calls: list[CallingTests] = []

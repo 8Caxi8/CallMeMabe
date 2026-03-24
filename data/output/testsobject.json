@@ -1,0 +1,35 @@
+[
+  {
+    "prompt": "Format the address {'street': '123 Main St', 'city': 'Springfield', 'country': 'USA'}",
+    "name": "fn_format_address",
+    "parameters": {
+      "address": {
+        "street": "123 Main St",
+        "city": "Springfield",
+        "country": "USA"
+      }
+    }
+  },
+  {
+    "prompt": "Format the address {'street': 'Rua Augusta', 'city': 'Lisbon', 'country': 'Portugal'}",
+    "name": "fn_format_address",
+    "parameters": {
+      "address": {
+        "street": "Rua Augusta",
+        "city": "Lisbon",
+        "country": "Portugal"
+      }
+    }
+  },
+  {
+    "prompt": "Format this address object {'street': 'Baker Street', 'city': 'London', 'zip': 'NW1 6XE'}",
+    "name": "fn_format_address",
+    "parameters": {
+      "address": {
+        "street": "Baker Street",
+        "city": "London",
+        "zip": "NW1 6XE"
+      }
+    }
+  }
+]
