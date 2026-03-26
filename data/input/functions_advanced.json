@@ -1,0 +1,51 @@
+[
+  {
+    "name": "fn_add_numbers",
+    "description": "Add two numbers together",
+    "parameters": {
+      "a": {"type": "number"},
+      "b": {"type": "number"}
+    },
+    "returns": {"type": "number"}
+  },
+  {
+    "name": "fn_greet",
+    "description": "Generate a greeting message",
+    "parameters": {
+      "name": {"type": "string"}
+    },
+    "returns": {"type": "string"}
+  },
+  {
+    "name": "fn_reverse_string",
+    "description": "Reverse a string",
+    "parameters": {
+      "s": {"type": "string"}
+    },
+    "returns": {"type": "string"}
+  },
+  {
+    "name": "fn_toggle",
+    "description": "Toggle a boolean value",
+    "parameters": {
+      "flag": {"type": "boolean"}
+    },
+    "returns": {"type": "boolean"}
+  },
+  {
+    "name": "fn_sum_array",
+    "description": "Sum all numbers in an array",
+    "parameters": {
+      "values": {"type": "array"}
+    },
+    "returns": {"type": "number"}
+  },
+  {
+    "name": "fn_build_object",
+    "description": "Create an object with name and age",
+    "parameters": {
+      "person": {"type": "object"}
+    },
+    "returns": {"type": "object"}
+  }
+]

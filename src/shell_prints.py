@@ -19,6 +19,12 @@ def print_failed_outcome(i: int, prompt: str, e: str) -> None:
     print(f"{RED}{e}{RESET}")
 
 
+def print_fallback(**kwargs) -> None:
+    for key, value in kwargs.items():
+        print(f"\r{RED}[WARNING]: {key} triggered (value={value})", end="",
+              flush=True)
+
+
 def print_header(i: int, prompt: str) -> int:
     print(f"{BLUE}{'='*120}")
     print(f"[#{i}] Prompt: '{prompt}'{RESET}")

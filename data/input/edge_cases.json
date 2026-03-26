@@ -1,0 +1,52 @@
+[
+  { "prompt": "" },
+  { "prompt": " " },
+  { "prompt": "Do something" },
+  { "prompt": "Function please" },
+
+  { "prompt": "Add" },
+  { "prompt": "Add two numbers" },
+  { "prompt": "Add apple and banana" },
+  { "prompt": "Add - and ." },
+
+  { "prompt": "Add -5 and -10" },
+  { "prompt": "Add -.5 and .25" },
+  { "prompt": "Add -0.0 and 0" },
+  { "prompt": "Add 1e10 and 5" },
+
+  { "prompt": "Add 999999999999999999999999 and 1" },
+
+  { "prompt": "Greet" },
+  { "prompt": "Greet 123" },
+  { "prompt": "Greet \"John\"" },
+  { "prompt": "Greet @#$%" },
+
+  { "prompt": "Reverse" },
+  { "prompt": "Reverse ''" },
+  { "prompt": "Reverse \"\"" },
+  { "prompt": "Reverse \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"" },
+
+  { "prompt": "Toggle maybe" },
+  { "prompt": "Toggle 123" },
+  { "prompt": "Toggle true false" },
+
+  { "prompt": "Sum []" },
+  { "prompt": "Sum [1,2,three]" },
+  { "prompt": "Sum [1,2,[3,4]]" },
+
+  { "prompt": "Create object {}" },
+  { "prompt": "Create object {name: John}" },
+  { "prompt": "Create object {\"name\": \"John\", \"age\": \"twenty\"}" },
+
+  { "prompt": "Replace vowels in text" },
+  { "prompt": "Replace numbers in \"abc\"" },
+  { "prompt": "Replace everything with nothing" },
+
+  { "prompt": "Replace 'cat' with 'dog' in ''" },
+  { "prompt": "Replace 'cat' with 'dog' in \"catcatcat\"" },
+
+  { "prompt": "What is the square root of -1?" },
+  { "prompt": "What is the square root of apple?" },
+
+  { "prompt": "Random text with no meaning at all xyz 123 !!!" }
+]

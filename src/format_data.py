@@ -36,7 +36,6 @@ def format_parameters(func: FunctionsDefinition,
         elif para_type.type == ParameterType.NULL:
             formated_parameters[para_name] = None
         elif para_type.type == ParameterType.OBJECT:
-            print("".join(value))
             formated_parameters[para_name] = json.loads("".join(value))
         else:
             raise FormatError("[ERROR]: Unsupported parameter type: "

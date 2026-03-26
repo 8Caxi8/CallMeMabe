@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, model_validator, ValidationError
+from pydantic import BaseModel, model_validator, ValidationError
 from pydantic_core import PydanticCustomError as Pe
 from enum import Enum
 from typing import Any
@@ -6,7 +6,7 @@ import sys
 
 
 class CallingTests(BaseModel):
-    prompt: str = Field(min_length=3)
+    prompt: str 
 
 
 class ParameterType(str, Enum):
@@ -24,8 +24,8 @@ class Parameter(BaseModel):
 
 
 class FunctionsDefinition(BaseModel):
-    name: str = Field(min_length=4)
-    description: str = Field(min_length=4)
+    name: str
+    description: str
     parameters: dict[str, Parameter]
     returns: Parameter
 

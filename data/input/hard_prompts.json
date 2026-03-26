@@ -1,0 +1,22 @@
+[
+  {"prompt": "Add 2 and 3"},
+  {"prompt": "What is 999999 + 1?"},
+  {"prompt": "Say hello to Alice"},
+  {"prompt": "Greet Bob"},
+  {"prompt": "Reverse 'OpenAI'"},
+  {"prompt": "Reverse the string 'racecar'"},
+  {"prompt": "Turn false into true"},
+  {"prompt": "Toggle true"},
+  {"prompt": "Sum this list [1,2,3,4,5]"},
+  {"prompt": "Add all numbers in [10, 20, 30]"},
+  {"prompt": "Create a person object with name John and age 25"},
+  {"prompt": "Build object {\"name\":\"Anna\",\"age\":30}"},
+  {"prompt": "Add -5 and 10"},
+  {"prompt": "Add 3.14 and 2.71"},
+  {"prompt": "Say hello to \"weird\" name"},
+  {"prompt": "Reverse ''"},
+  {"prompt": "Sum []"},
+  {"prompt": "Toggle boolean maybe"},
+  {"prompt": "Greet"},
+  {"prompt": "Add two numbers"}
+]
