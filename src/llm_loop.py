@@ -75,6 +75,7 @@ def get_parameters(func: FunctionsDefinition,
         f"{func.description}"
         f"{parameters_display}\n"
         f"Prompt: {prompt}\n"
+        "Extract the correct parameter from the prompt for this function"
         f"Parameter (ended with \"):"
     )
 
