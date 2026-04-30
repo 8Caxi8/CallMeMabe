@@ -70,13 +70,15 @@ def get_parameters(func: FunctionsDefinition,
     #     f"Prompt: {prompt}\n"
     #     f"Parameter from prompt (ended with \"):"
     # )
-
     starting_string = (
         f"{func.description}"
         f"{parameters_display}\n"
-        f"Prompt: {prompt}\n"
-        "Extract the correct parameter from the prompt for this function"
-        f"Parameter (ended with \"):"
+        f"Prompt: {prompt.replace('asterisks', '*')}\n"
+        "Your task is to COPY text, not to generate or rewrite.\n"
+        "Copy the parameter EXACTLY as it appears in the prompt.\n"
+        "Do NOT remove anything.\n"
+        "Character-by-character copy.\n"
+        f"Parameter (start and end with \"):"
     )
 
     parameters: dict[str, list[str]] = {}
@@ -109,7 +111,15 @@ def get_parameters(func: FunctionsDefinition,
                 model, starting_string + "(true/false)" + param, id_to_token)
 
         else:
-            parameters[param_name] = get_string_parameter(
-                model, starting_string + param, id_to_token)
+            generated = "".join(get_string_parameter(
+                model, starting_string + param, id_to_token))
+            if generated in prompt:
+                parameters[param_name] = list(generated)
+            else:
+                if ":" in prompt:
+                    value = prompt.split(":", 1)[1].strip()
+                    parameters[param_name] = list(value)
+                else:
+                    parameters[param_name] = list(generated)
 
     return format_parameters(func, parameters)

@@ -1,6 +1,11 @@
 [project]
 name = "callmemaybe"
-version = "1.2"
+version = "1.3"
+description = "Drone Pathfinding and Path Assignment Optimizer"
+readme = "README.md"
+authors = [
+    { name = "dansimoe"}
+]
 requires-python = ">=3.10"
 dependencies = [
     "numpy",
@@ -13,3 +18,7 @@ dependencies = [
 
 [tool.uv.sources]
 llm_sdk = { path = "llm_sdk" }
+
+[tool.mypy]
+strict = true
+plugins = ["pydantic.mypy"]

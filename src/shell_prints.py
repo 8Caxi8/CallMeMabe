@@ -19,7 +19,7 @@ def print_failed_outcome(i: int, prompt: str, e: str) -> None:
     print(f"{RED}{e}{RESET}")
 
 
-def print_fallback(**kwargs) -> None:
+def print_fallback(**kwargs: Any) -> None:
     for key, value in kwargs.items():
         print(f"\r{RED}[WARNING]: {key} triggered (value={value})", end="",
               flush=True)

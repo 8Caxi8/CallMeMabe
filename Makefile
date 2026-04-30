@@ -12,7 +12,6 @@ install:
 	uv sync
 
 run:
-	export HF_HOME=$(HOMW)
 	mkdir -p $HF_HOME
 	clear
 	uv run python -m $(MAIN)

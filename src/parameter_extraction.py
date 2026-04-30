@@ -28,6 +28,8 @@ def get_function_name(valid_func: list[FunctionsDefinition],
             return functions[0]
 
         starting_string = (
+            "You have to select the correct function by what is "
+            "given in the prompt"
             f"{descriptions}\n"
             f"Prompt: {prompt}\n"
             f"Function to use: {func_name}"
@@ -273,7 +275,7 @@ def get_string_parameter(model: Small_LLM_Model,
         for letter in token_str:
             parameter.append(letter)
             print_progress(letter, "")
-            if letter in end_tokens:
+            if letter == '"' and (len(parameter) < 2 or parameter[-2] != '\\'):
                 break
 
         if parameter and parameter[-1] in end_tokens:
@@ -281,7 +283,8 @@ def get_string_parameter(model: Small_LLM_Model,
 
         loop_counter += 1
 
-    return parameter[1:-1]
+    value = "".join(parameter[1:-1]).strip()
+    return list(value)
 
 
 def get_delimiters(parameter_type: ParameterType) -> tuple[str, str]:

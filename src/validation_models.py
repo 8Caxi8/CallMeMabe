@@ -6,7 +6,7 @@ import sys
 
 
 class CallingTests(BaseModel):
-    prompt: str 
+    prompt: str
 
 
 class ParameterType(str, Enum):
