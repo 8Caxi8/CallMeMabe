@@ -1,28 +1,26 @@
 from .validation_models import FunctionsDefinition, CallingTests, ParameterType
 from .shell_prints import (print_header, print_success_outcome,
                            print_failed_outcome, print_progress,
-                           clear_lines)
+                           clear_lines, print_recover)
 from .format_data import format_parameters, format_output, FormatError
 from .parameter_extraction import (get_bool_parameter, get_delimiters,
                                    get_delimited_parameter,
                                    get_int_parameter, get_number_parameter,
-                                   get_string_parameter, get_function_name)
-from llm_sdk import Small_LLM_Model  # type: ignore
+                                   get_string_parameter, get_function_name,
+                                   get_recovered_parameter)
+from .llm import BaseLLM
 from typing import Any
-import json
 
 lines = 0
 
 
 def main_loop(valid_func: list[FunctionsDefinition],
-              valid_calls: list[CallingTests]) -> list[dict[str, Any]]:
+              valid_calls: list[CallingTests],
+              model: BaseLLM) -> list[dict[str, Any]]:
     output: list[dict[str, Any]] = []
-    model = Small_LLM_Model(device="cpu")
     global lines
 
-    with open(model.get_path_to_vocab_file()) as f:
-        vocab = json.load(f)
-    id_to_token = {value: key for key, value in vocab.items()}
+    id_to_token = model.get_vocab()
 
     for i, call in enumerate(valid_calls):
         prompt = call.prompt
@@ -58,7 +56,7 @@ def main_loop(valid_func: list[FunctionsDefinition],
 def get_parameters(func: FunctionsDefinition,
                    prompt: str,
                    id_to_token: dict[int, str],
-                   model: Small_LLM_Model) -> dict[str, Any]:
+                   model: BaseLLM) -> dict[str, Any]:
     global lines
     parameters_display = "\n".join(
         f"- {key}: {value.type.value}"
@@ -113,13 +111,14 @@ def get_parameters(func: FunctionsDefinition,
         else:
             generated = "".join(get_string_parameter(
                 model, starting_string + param, id_to_token))
-            if generated in prompt:
-                parameters[param_name] = list(generated)
+            if generated not in prompt:
+                recovered = get_recovered_parameter(generated, prompt)
+                if recovered != generated:
+                    lines += print_recover("[WARNING]: Recovering llm output"
+                                           f" to '{recovered}'...", "")
+                parameters[param_name] = list(recovered)
+
             else:
-                if ":" in prompt:
-                    value = prompt.split(":", 1)[1].strip()
-                    parameters[param_name] = list(value)
-                else:
-                    parameters[param_name] = list(generated)
+                parameters[param_name] = list(generated)
 
     return format_parameters(func, parameters)

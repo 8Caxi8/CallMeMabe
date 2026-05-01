@@ -13,7 +13,9 @@ dependencies = [
     "flake8",
     "mypy",
 	"llm_sdk",
-	"accelerate"
+	"accelerate",
+    "transformers",
+    "torch"
 ]
 
 [tool.uv.sources]

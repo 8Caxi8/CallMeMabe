@@ -4,13 +4,14 @@ import sys
 import json
 
 
-def parser() -> tuple[list[dict[Any, Any]], list[dict[Any, Any]], str]:
+def parser() -> tuple[list[dict[Any, Any]], list[dict[Any, Any]], str, str]:
     args = sys.argv[1:]
     i = 0
 
     functions_path = "data/input/functions_definition.json"
     input_file_path = "data/input/function_calling_tests.json"
     output_file_path = "data/output/function_calling_results.json"
+    llm = "qwen"
 
     while i < len(args):
         if args[i] == "--functions_definition":
@@ -28,13 +29,19 @@ def parser() -> tuple[list[dict[Any, Any]], list[dict[Any, Any]], str]:
                 raise ValueError(f"Missing value for {args[i]}")
             i += 1
             output_file_path = args[i]
+        elif args[i] == "--llm":
+            if i + 1 >= len(args):
+                raise ValueError(f"Missing value for {args[i]}")
+            i += 1
+            llm = args[i]
+            print(llm)
         i += 1
 
     functions = load_json(functions_path)
     input_file = load_json(input_file_path)
     os.makedirs(os.path.dirname(output_file_path), exist_ok=True)
 
-    return functions, input_file, output_file_path
+    return functions, input_file, output_file_path, llm
 
 
 def load_json(path: str) -> Any:

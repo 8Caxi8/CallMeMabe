@@ -2,6 +2,7 @@ from pydantic import BaseModel, model_validator, ValidationError
 from pydantic_core import PydanticCustomError as Pe
 from enum import Enum
 from typing import Any
+from .llm import BaseLLM, Qwen3LLM, Qwen2LLM
 import sys
 
 
@@ -39,8 +40,9 @@ class FunctionsDefinition(BaseModel):
 
 
 def get_validated_model(functions: list[dict[str, Any]],
-                        input_file: list[dict[str, Any]]) \
-                    -> tuple[list[FunctionsDefinition], list[CallingTests]]:
+                        input_file: list[dict[str, Any]],
+                        llm: str) \
+            -> tuple[list[FunctionsDefinition], list[CallingTests], BaseLLM]:
     validation = True
     validated_calls: list[CallingTests] = []
     validated_functions: list[FunctionsDefinition] = []
@@ -66,7 +68,17 @@ def get_validated_model(functions: list[dict[str, Any]],
                 print(error["msg"])
             validation = False
 
+    if llm == "qwen3":
+        model = Qwen3LLM(device="cpu")
+
+    elif llm == "qwen2":
+        model = Qwen2LLM()
+
+    else:
+        print(f"[ERROR]: Unkown llm {llm}!")
+        validation = False
+
     if not validation:
         sys.exit(2)
 
-    return validated_functions, validated_calls
+    return validated_functions, validated_calls, model

@@ -1,8 +1,10 @@
 from .shell_prints import print_progress, print_fallback
 from .validation_models import ParameterType, FunctionsDefinition
-from llm_sdk import Small_LLM_Model  # type: ignore
+from .llm import BaseLLM
 from typing import Callable
 import json
+
+import sys
 
 
 MAX_TOKENS = 50
@@ -12,7 +14,7 @@ MAX_LOOP_ITER = 50
 def get_function_name(valid_func: list[FunctionsDefinition],
                       prompt: str,
                       id_to_token: dict[int, str],
-                      model: Small_LLM_Model) -> str:
+                      model: BaseLLM) -> str:
     functions = [f.name for f in valid_func]
     descriptions = "\n".join(
         f"- {function.name.replace('fn_', '')}: {function.description}"
@@ -35,7 +37,7 @@ def get_function_name(valid_func: list[FunctionsDefinition],
             f"Function to use: {func_name}"
         )
 
-        input_ids = model.encode(starting_string).squeeze().tolist()
+        input_ids = model.encode(starting_string)
         logits = model.get_logits_from_input_ids(input_ids)
 
         while True:
@@ -44,8 +46,8 @@ def get_function_name(valid_func: list[FunctionsDefinition],
                 return functions[0]
             token_id = logits.index(max(logits))
 
-            token_str = id_to_token.get(
-                token_id, "").replace("Ġ", "").replace("ĉ", "")
+            token_str = (model.clean_function_name(id_to_token.get(
+                token_id, "")))
 
             candidate = "fn_" + func_name + token_str
             if any(f.startswith(candidate) for f in functions):
@@ -61,7 +63,7 @@ def get_function_name(valid_func: list[FunctionsDefinition],
     return "fn_" + func_name
 
 
-def get_delimited_parameter(model: Small_LLM_Model,
+def get_delimited_parameter(model: BaseLLM,
                             starting_string: str,
                             id_to_token: dict[int, str],
                             start_delimiter: str,
@@ -80,13 +82,12 @@ def get_delimited_parameter(model: Small_LLM_Model,
 
         input_ids = model.encode(
             starting_string + "".join(
-                parameter)).squeeze().tolist()
+                parameter))
         logits = model.get_logits_from_input_ids(input_ids)
 
         token_id = logits.index(max(logits))
-        token_str = (id_to_token.get(
-            token_id, "").replace("Ġ", " ").replace("ĉ", "").
-            replace("Ċ", "").replace("ĉ", ""))
+        token_str = (model.clean_str_tokens(id_to_token.get(
+                token_id, "")))
 
         for letter in token_str:
             parameter.append(letter)
@@ -103,7 +104,7 @@ def get_delimited_parameter(model: Small_LLM_Model,
     return parameter
 
 
-def get_number_parameter(model: Small_LLM_Model,
+def get_number_parameter(model: BaseLLM,
                          starting_string: str,
                          id_to_token: dict[int, str]) -> list[str]:
     parameter: list[str] = ["\""]
@@ -118,7 +119,7 @@ def get_number_parameter(model: Small_LLM_Model,
 
         input_ids = model.encode(
             starting_string + "".join(
-                parameter)).squeeze().tolist()
+                parameter))
         logits = model.get_logits_from_input_ids(input_ids)
 
         while True:
@@ -127,9 +128,8 @@ def get_number_parameter(model: Small_LLM_Model,
                 return fallback_number(parameter, float)
 
             token_id = logits.index(max(logits))
-            token_str = (id_to_token.get(
-                token_id, "").replace("Ġ", "").replace("ĉ", "").
-                replace("Ċ", "").replace("ĉ", ""))
+            token_str = (model.clean_number_tokens(id_to_token.get(
+                token_id, "")))
 
             candidate = "".join(parameter[1:] + [token_str])
             try:
@@ -160,7 +160,7 @@ def get_number_parameter(model: Small_LLM_Model,
     return parameter[1:-1]
 
 
-def get_int_parameter(model: Small_LLM_Model,
+def get_int_parameter(model: BaseLLM,
                       starting_string: str,
                       id_to_token: dict[int, str]) -> list[str]:
     parameter: list[str] = ["\""]
@@ -175,7 +175,7 @@ def get_int_parameter(model: Small_LLM_Model,
 
         input_ids = model.encode(
             starting_string + "".join(
-                parameter)).squeeze().tolist()
+                parameter))
         logits = model.get_logits_from_input_ids(input_ids)
 
         while True:
@@ -184,9 +184,8 @@ def get_int_parameter(model: Small_LLM_Model,
                 return fallback_number(parameter, int)
 
             token_id = logits.index(max(logits))
-            token_str = (id_to_token.get(
-                token_id, "").replace("Ġ", "").replace("ĉ", "").
-                replace("Ċ", "").replace("ĉ", ""))
+            token_str = (model.clean_number_tokens(id_to_token.get(
+                token_id, "")))
 
             candidate = "".join(parameter[1:] + [token_str])
             try:
@@ -216,7 +215,7 @@ def get_int_parameter(model: Small_LLM_Model,
     return parameter[1:-1]
 
 
-def get_bool_parameter(model: Small_LLM_Model,
+def get_bool_parameter(model: BaseLLM,
                        starting_string: str,
                        id_to_token: dict[int, str]) -> list[str]:
     parameter: list[str] = []
@@ -224,7 +223,7 @@ def get_bool_parameter(model: Small_LLM_Model,
 
     input_ids = model.encode(
         starting_string + "".join(
-            parameter)).squeeze().tolist()
+            parameter))
     logits = model.get_logits_from_input_ids(input_ids)
 
     while True:
@@ -233,9 +232,8 @@ def get_bool_parameter(model: Small_LLM_Model,
             return ["true"]
 
         token_id = logits.index(max(logits))
-        token_str = (id_to_token.get(
-            token_id, "").replace("Ġ", "").replace("ĉ", "").
-            replace("Ċ", "").replace("ĉ", ""))
+        token_str = (model.clean_number_tokens(id_to_token.get(
+                token_id, "")))
 
         if token_str.lower() not in {"true", "false"}:
             logits[token_id] = float("-inf")
@@ -249,7 +247,7 @@ def get_bool_parameter(model: Small_LLM_Model,
     return parameter
 
 
-def get_string_parameter(model: Small_LLM_Model,
+def get_string_parameter(model: BaseLLM,
                          starting_string: str,
                          id_to_token: dict[int, str]) -> list[str]:
     parameter: list[str] = ["\""]
@@ -263,14 +261,12 @@ def get_string_parameter(model: Small_LLM_Model,
 
         input_ids = model.encode(
             starting_string + "".join(
-                parameter)).squeeze().tolist()
+                parameter))
         logits = model.get_logits_from_input_ids(input_ids)
 
         token_id = logits.index(max(logits))
-        token_str = (id_to_token.get(
-            token_id, "").
-            replace("Ġ", " ").replace("ĉ", "").
-            replace("Ċ", "").replace("ĉ", ""))
+        token_str = (model.clean_str_tokens(id_to_token.get(
+                token_id, "")))
 
         for letter in token_str:
             parameter.append(letter)
@@ -318,3 +314,13 @@ def fallback_delimited(parameter: list[str],
             return list("[]")
 
     return list("{}")
+
+
+def get_recovered_parameter(generated: str, prompt: str) -> str:
+    recovered: str = ""
+    if ":" in prompt:
+        recovered = prompt.split(":", 1)[1].strip()
+    else:
+        recovered = generated
+
+    return recovered

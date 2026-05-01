@@ -21,8 +21,8 @@ def print_failed_outcome(i: int, prompt: str, e: str) -> None:
 
 def print_fallback(**kwargs: Any) -> None:
     for key, value in kwargs.items():
-        print(f"\r{RED}[WARNING]: {key} triggered (value={value})", end="",
-              flush=True)
+        print(f"{CLEAR_LINE}{RED}[ERROR]: {key} triggered (value={value})",
+              end="", flush=True)
 
 
 def print_header(i: int, prompt: str) -> int:
@@ -42,12 +42,19 @@ def print_success_outcome(result: dict[str, Any]) -> None:
     sleep(0.5)
 
 
-def print_llm_initializer(prompt_size: int, func_no: int) -> None:
-    print(f"{ITALIC}{PURPLE}Initializing llm 'Qwen/Qwen3-0.6B' ...{RESET}\n")
+def print_llm_initializer(name: str) -> None:
+    print(f"{ITALIC}{PURPLE}Initializing llm '{name}' ...{RESET}\n")
 
 
 def print_progress(msg: str, end_l: str) -> int:
     print(f"{YELLOW}{msg}{RESET}", end=end_l, flush=True)
+
+    return 1
+
+
+def print_recover(msg: str, end_l: str) -> int:
+    print(f"\n{RED}[WARNING]: {msg}{RESET}", end=end_l, flush=True)
+    sleep(2)
 
     return 1
 
@@ -66,3 +73,7 @@ def clear_lines(n: int) -> int:
     print(f"\r{CLEAR_LINE}", end="", flush=True)
 
     return 0
+
+
+def print_output(path: str) -> None:
+    print(f"\n{ITALIC}{PURPLE}Creating '{path}' ...{RESET}\n")
