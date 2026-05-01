@@ -4,16 +4,13 @@ from .llm import BaseLLM
 from typing import Callable
 import json
 
-import sys
 
-
-MAX_TOKENS = 50
+MAX_TOKENS = 100
 MAX_LOOP_ITER = 50
 
 
 def get_function_name(valid_func: list[FunctionsDefinition],
                       prompt: str,
-                      id_to_token: dict[int, str],
                       model: BaseLLM) -> str:
     functions = [f.name for f in valid_func]
     descriptions = "\n".join(
@@ -38,7 +35,13 @@ def get_function_name(valid_func: list[FunctionsDefinition],
         )
 
         input_ids = model.encode(starting_string)
-        logits = model.get_logits_from_input_ids(input_ids)
+        key = tuple(input_ids)
+
+        if key in model.cache:
+            logits = model.cache[key].copy()
+        else:
+            logits = model.get_logits_from_input_ids(input_ids)
+            model.cache[key] = logits.copy()
 
         while True:
             if tokens_counter > MAX_TOKENS:
@@ -46,8 +49,8 @@ def get_function_name(valid_func: list[FunctionsDefinition],
                 return functions[0]
             token_id = logits.index(max(logits))
 
-            token_str = (model.clean_function_name(id_to_token.get(
-                token_id, "")))
+            token_str = (model.clean_function_name(
+                model.decode_token(token_id)))
 
             candidate = "fn_" + func_name + token_str
             if any(f.startswith(candidate) for f in functions):
@@ -65,7 +68,6 @@ def get_function_name(valid_func: list[FunctionsDefinition],
 
 def get_delimited_parameter(model: BaseLLM,
                             starting_string: str,
-                            id_to_token: dict[int, str],
                             start_delimiter: str,
                             end_delimiter: str) -> list[str]:
     parameter: list[str] = [start_delimiter]
@@ -83,11 +85,17 @@ def get_delimited_parameter(model: BaseLLM,
         input_ids = model.encode(
             starting_string + "".join(
                 parameter))
-        logits = model.get_logits_from_input_ids(input_ids)
+        key = tuple(input_ids)
+
+        if key in model.cache:
+            logits = model.cache[key].copy()
+        else:
+            logits = model.get_logits_from_input_ids(input_ids)
+            model.cache[key] = logits.copy()
 
         token_id = logits.index(max(logits))
-        token_str = (model.clean_str_tokens(id_to_token.get(
-                token_id, "")))
+        token_str = (model.clean_str_tokens(
+            model.decode_token(token_id)))
 
         for letter in token_str:
             parameter.append(letter)
@@ -105,8 +113,7 @@ def get_delimited_parameter(model: BaseLLM,
 
 
 def get_number_parameter(model: BaseLLM,
-                         starting_string: str,
-                         id_to_token: dict[int, str]) -> list[str]:
+                         starting_string: str) -> list[str]:
     parameter: list[str] = ["\""]
     end_tokens = {"\""}
     loop_counter: int = 0
@@ -120,7 +127,13 @@ def get_number_parameter(model: BaseLLM,
         input_ids = model.encode(
             starting_string + "".join(
                 parameter))
-        logits = model.get_logits_from_input_ids(input_ids)
+        key = tuple(input_ids)
+
+        if key in model.cache:
+            logits = model.cache[key].copy()
+        else:
+            logits = model.get_logits_from_input_ids(input_ids)
+            model.cache[key] = logits.copy()
 
         while True:
             if tokens_counter > MAX_TOKENS:
@@ -128,8 +141,8 @@ def get_number_parameter(model: BaseLLM,
                 return fallback_number(parameter, float)
 
             token_id = logits.index(max(logits))
-            token_str = (model.clean_number_tokens(id_to_token.get(
-                token_id, "")))
+            token_str = (model.clean_number_tokens(
+                model.decode_token(token_id)))
 
             candidate = "".join(parameter[1:] + [token_str])
             try:
@@ -161,8 +174,7 @@ def get_number_parameter(model: BaseLLM,
 
 
 def get_int_parameter(model: BaseLLM,
-                      starting_string: str,
-                      id_to_token: dict[int, str]) -> list[str]:
+                      starting_string: str) -> list[str]:
     parameter: list[str] = ["\""]
     end_tokens = {"\""}
     loop_counter: int = 0
@@ -176,7 +188,13 @@ def get_int_parameter(model: BaseLLM,
         input_ids = model.encode(
             starting_string + "".join(
                 parameter))
-        logits = model.get_logits_from_input_ids(input_ids)
+        key = tuple(input_ids)
+
+        if key in model.cache:
+            logits = model.cache[key].copy()
+        else:
+            logits = model.get_logits_from_input_ids(input_ids)
+            model.cache[key] = logits.copy()
 
         while True:
             if tokens_counter > MAX_TOKENS:
@@ -184,8 +202,8 @@ def get_int_parameter(model: BaseLLM,
                 return fallback_number(parameter, int)
 
             token_id = logits.index(max(logits))
-            token_str = (model.clean_number_tokens(id_to_token.get(
-                token_id, "")))
+            token_str = (model.clean_number_tokens(
+                model.decode_token(token_id)))
 
             candidate = "".join(parameter[1:] + [token_str])
             try:
@@ -216,8 +234,7 @@ def get_int_parameter(model: BaseLLM,
 
 
 def get_bool_parameter(model: BaseLLM,
-                       starting_string: str,
-                       id_to_token: dict[int, str]) -> list[str]:
+                       starting_string: str) -> list[str]:
     parameter: list[str] = []
     tokens_counter: int = 0
 
@@ -232,8 +249,8 @@ def get_bool_parameter(model: BaseLLM,
             return ["true"]
 
         token_id = logits.index(max(logits))
-        token_str = (model.clean_number_tokens(id_to_token.get(
-                token_id, "")))
+        token_str = (model.clean_number_tokens(
+            model.decode_token(token_id)))
 
         if token_str.lower() not in {"true", "false"}:
             logits[token_id] = float("-inf")
@@ -248,8 +265,7 @@ def get_bool_parameter(model: BaseLLM,
 
 
 def get_string_parameter(model: BaseLLM,
-                         starting_string: str,
-                         id_to_token: dict[int, str]) -> list[str]:
+                         starting_string: str) -> list[str]:
     parameter: list[str] = ["\""]
     end_tokens = {"\""}
     loop_counter: int = 0
@@ -262,11 +278,17 @@ def get_string_parameter(model: BaseLLM,
         input_ids = model.encode(
             starting_string + "".join(
                 parameter))
-        logits = model.get_logits_from_input_ids(input_ids)
+        key = tuple(input_ids)
+
+        if key in model.cache:
+            logits = model.cache[key].copy()
+        else:
+            logits = model.get_logits_from_input_ids(input_ids)
+            model.cache[key] = logits.copy()
 
         token_id = logits.index(max(logits))
-        token_str = (model.clean_str_tokens(id_to_token.get(
-                token_id, "")))
+        token_str = (model.clean_str_tokens(
+            model.decode_token(token_id)))
 
         for letter in token_str:
             parameter.append(letter)

@@ -15,6 +15,10 @@ class BaseLLM(ABC):
         pass
 
     @abstractmethod
+    def decode_token(self, token_id: int) -> str:
+        pass
+
+    @abstractmethod
     def get_logits_from_input_ids(self, input_ids: list[int]) -> list[float]:
         """Return logits over vocabulary for the next token."""
         pass
@@ -45,6 +49,7 @@ class Qwen3LLM(BaseLLM):
         print_llm_initializer("Qwen/Qwen3-0.6B")
         self._model = Small_LLM_Model(device=device)
         self._vocab = self._load_vocab()
+        self.cache = {}
 
     def _load_vocab(self) -> dict[int, str]:
         vocab_path = self._model.get_path_to_vocab_file()
@@ -55,6 +60,9 @@ class Qwen3LLM(BaseLLM):
     def encode(self, text: str) -> list[int]:
         return self._model.encode(text).squeeze().tolist()
 
+    def decode_token(self, token_id: int) -> str:
+        return self._vocab.get(token_id, "")
+
     def get_logits_from_input_ids(self, input_ids: list[int]) -> list[float]:
         return self._model.get_logits_from_input_ids(input_ids)
 
@@ -62,7 +70,7 @@ class Qwen3LLM(BaseLLM):
         return self._vocab
 
     def clean_function_name(self, token: str) -> str:
-        return token.replace("Ġ", "").replace("ĉ", "").replace("Ċ", "")
+        return token.replace("Ġ", "").replace("ĉ", "").replace("Ċ", "").strip()
 
     def clean_number_tokens(self, token: str) -> str:
         return token.replace("Ġ", "").replace("ĉ", "").replace("Ċ", "")
@@ -87,6 +95,9 @@ class Qwen2LLM(BaseLLM):
     def encode(self, text: str) -> list[int]:
         return self._tokenizer.encode(text, add_special_tokens=False)
 
+    def decode_token(self, token_id: str):
+        return self._tokenizer.decode([token_id])
+
     def get_logits_from_input_ids(self, input_ids: list[int]) -> list[float]:
         input_tensor = torch.tensor([input_ids])
         with torch.no_grad():
@@ -97,7 +108,7 @@ class Qwen2LLM(BaseLLM):
         return self._id_to_token
 
     def clean_function_name(self, token: str) -> str:
-        return token.replace("Ġ", "").replace("\n", "").replace("▁", "")
+        return token.replace("Ġ", "").replace("\n", "").strip()
 
     def clean_number_tokens(self, token: str) -> str:
         return token.replace("Ġ", "").replace("▁", "").strip()

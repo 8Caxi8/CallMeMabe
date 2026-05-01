@@ -20,20 +20,18 @@ def main_loop(valid_func: list[FunctionsDefinition],
     output: list[dict[str, Any]] = []
     global lines
 
-    id_to_token = model.get_vocab()
-
     for i, call in enumerate(valid_calls):
         prompt = call.prompt
         lines += print_header(i, prompt)
 
         try:
             func_name = get_function_name(valid_func, prompt,
-                                          id_to_token, model)
+                                          model)
             function = next(func for func in valid_func
                             if func.name == func_name)
 
             lines += print_progress("'\n  - 'parameters':", "")
-            parameters = get_parameters(function, prompt, id_to_token, model)
+            parameters = get_parameters(function, prompt, model)
             output.append(format_output(prompt, function.name, parameters))
 
         except FormatError as e:
@@ -55,7 +53,6 @@ def main_loop(valid_func: list[FunctionsDefinition],
 
 def get_parameters(func: FunctionsDefinition,
                    prompt: str,
-                   id_to_token: dict[int, str],
                    model: BaseLLM) -> dict[str, Any]:
     global lines
     parameters_display = "\n".join(
@@ -90,15 +87,15 @@ def get_parameters(func: FunctionsDefinition,
 
         if parameter_type == ParameterType.NUMBER:
             parameters[param_name] = get_number_parameter(
-                model, starting_string + param, id_to_token)
+                model, starting_string + param)
 
         elif parameter_type == ParameterType.INTEGER:
             parameters[param_name] = get_int_parameter(
-                model, starting_string + param, id_to_token)
+                model, starting_string + param)
 
         elif parameter_type in (ParameterType.ARRAY, ParameterType.OBJECT):
             parameters[param_name] = get_delimited_parameter(
-                model, starting_string + param, id_to_token,
+                model, starting_string + param,
                 *get_delimiters(parameter_type))
 
         elif parameter_type == ParameterType.NULL:
@@ -106,11 +103,11 @@ def get_parameters(func: FunctionsDefinition,
 
         elif parameter_type == ParameterType.BOOLEAN:
             parameters[param_name] = get_bool_parameter(
-                model, starting_string + "(true/false)" + param, id_to_token)
+                model, starting_string + "(true/false)" + param)
 
         else:
             generated = "".join(get_string_parameter(
-                model, starting_string + param, id_to_token))
+                model, starting_string + param))
             if generated not in prompt:
                 recovered = get_recovered_parameter(generated, prompt)
                 if recovered != generated:
