@@ -11,7 +11,7 @@ def parser() -> tuple[list[dict[Any, Any]], list[dict[Any, Any]], str, str]:
     functions_path = "data/input/functions_definition.json"
     input_file_path = "data/input/function_calling_tests.json"
     output_file_path = "data/output/function_calling_results.json"
-    llm = "qwen"
+    llm = "qwen3"
 
     while i < len(args):
         if args[i] == "--functions_definition":

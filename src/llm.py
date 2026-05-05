@@ -3,11 +3,15 @@ from llm_sdk import Small_LLM_Model  # type: ignore
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
 import json
+from typing import Callable
 from .shell_prints import print_llm_initializer
 
 
 class BaseLLM(ABC):
     """Abstract base class for LLM wrappers."""
+
+    def __init__(self) -> None:
+        self.cache = {}
 
     @abstractmethod
     def encode(self, text: str) -> list[int]:
@@ -43,13 +47,21 @@ class BaseLLM(ABC):
         """Normalize spacing artifacts for string tokens."""
         pass
 
+    def get_cached_token(self,
+                         token_id: int,
+                         clean_fn: Callable[[str], str]) -> str:
+        key = (token_id, clean_fn.__name__)
+        if key not in self.cache:
+            self.cache[key] = clean_fn(self.decode_token(token_id))
+        return self.cache[key]
+
 
 class Qwen3LLM(BaseLLM):
     def __init__(self, device: str = "cpu") -> None:
         print_llm_initializer("Qwen/Qwen3-0.6B")
+        super().__init__()
         self._model = Small_LLM_Model(device=device)
         self._vocab = self._load_vocab()
-        self.cache = {}
 
     def _load_vocab(self) -> dict[int, str]:
         vocab_path = self._model.get_path_to_vocab_file()
@@ -83,6 +95,7 @@ class Qwen2LLM(BaseLLM):
 
     def __init__(self) -> None:
         print_llm_initializer("Qwen/Qwen2-0.5B")
+        super().__init__()
         self._tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2-0.5B")
         self._model = AutoModelForCausalLM.from_pretrained(
             "Qwen/Qwen2-0.5B",
@@ -95,7 +108,7 @@ class Qwen2LLM(BaseLLM):
     def encode(self, text: str) -> list[int]:
         return self._tokenizer.encode(text, add_special_tokens=False)
 
-    def decode_token(self, token_id: str):
+    def decode_token(self, token_id: int) -> str:
         return self._tokenizer.decode([token_id])
 
     def get_logits_from_input_ids(self, input_ids: list[int]) -> list[float]:

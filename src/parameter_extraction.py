@@ -28,20 +28,16 @@ def get_function_name(valid_func: list[FunctionsDefinition],
 
         starting_string = (
             "You have to select the correct function by what is "
-            "given in the prompt"
+            "given in the prompt.\n"
+            "Select a function name by keywords in the prompt "
+            "EXACTLY as they are written.\n"
             f"{descriptions}\n"
             f"Prompt: {prompt}\n"
             f"Function to use: {func_name}"
         )
 
         input_ids = model.encode(starting_string)
-        key = tuple(input_ids)
-
-        if key in model.cache:
-            logits = model.cache[key].copy()
-        else:
-            logits = model.get_logits_from_input_ids(input_ids)
-            model.cache[key] = logits.copy()
+        logits = model.get_logits_from_input_ids(input_ids)
 
         while True:
             if tokens_counter > MAX_TOKENS:
@@ -49,8 +45,8 @@ def get_function_name(valid_func: list[FunctionsDefinition],
                 return functions[0]
             token_id = logits.index(max(logits))
 
-            token_str = (model.clean_function_name(
-                model.decode_token(token_id)))
+            token_str = model.get_cached_token(token_id,
+                                               model.clean_function_name)
 
             candidate = "fn_" + func_name + token_str
             if any(f.startswith(candidate) for f in functions):
@@ -85,17 +81,11 @@ def get_delimited_parameter(model: BaseLLM,
         input_ids = model.encode(
             starting_string + "".join(
                 parameter))
-        key = tuple(input_ids)
-
-        if key in model.cache:
-            logits = model.cache[key].copy()
-        else:
-            logits = model.get_logits_from_input_ids(input_ids)
-            model.cache[key] = logits.copy()
+        logits = model.get_logits_from_input_ids(input_ids)
 
         token_id = logits.index(max(logits))
-        token_str = (model.clean_str_tokens(
-            model.decode_token(token_id)))
+        token_str = model.get_cached_token(token_id,
+                                           model.clean_str_tokens)
 
         for letter in token_str:
             parameter.append(letter)
@@ -127,13 +117,8 @@ def get_number_parameter(model: BaseLLM,
         input_ids = model.encode(
             starting_string + "".join(
                 parameter))
-        key = tuple(input_ids)
 
-        if key in model.cache:
-            logits = model.cache[key].copy()
-        else:
-            logits = model.get_logits_from_input_ids(input_ids)
-            model.cache[key] = logits.copy()
+        logits = model.get_logits_from_input_ids(input_ids)
 
         while True:
             if tokens_counter > MAX_TOKENS:
@@ -141,9 +126,8 @@ def get_number_parameter(model: BaseLLM,
                 return fallback_number(parameter, float)
 
             token_id = logits.index(max(logits))
-            token_str = (model.clean_number_tokens(
-                model.decode_token(token_id)))
-
+            token_str = model.get_cached_token(token_id,
+                                               model.clean_number_tokens)
             candidate = "".join(parameter[1:] + [token_str])
             try:
                 float(candidate)
@@ -188,13 +172,7 @@ def get_int_parameter(model: BaseLLM,
         input_ids = model.encode(
             starting_string + "".join(
                 parameter))
-        key = tuple(input_ids)
-
-        if key in model.cache:
-            logits = model.cache[key].copy()
-        else:
-            logits = model.get_logits_from_input_ids(input_ids)
-            model.cache[key] = logits.copy()
+        logits = model.get_logits_from_input_ids(input_ids)
 
         while True:
             if tokens_counter > MAX_TOKENS:
@@ -202,8 +180,9 @@ def get_int_parameter(model: BaseLLM,
                 return fallback_number(parameter, int)
 
             token_id = logits.index(max(logits))
-            token_str = (model.clean_number_tokens(
-                model.decode_token(token_id)))
+
+            token_str = model.get_cached_token(token_id,
+                                               model.clean_number_tokens)
 
             candidate = "".join(parameter[1:] + [token_str])
             try:
@@ -249,8 +228,8 @@ def get_bool_parameter(model: BaseLLM,
             return ["true"]
 
         token_id = logits.index(max(logits))
-        token_str = (model.clean_number_tokens(
-            model.decode_token(token_id)))
+        token_str = model.get_cached_token(token_id,
+                                           model.clean_number_tokens)
 
         if token_str.lower() not in {"true", "false"}:
             logits[token_id] = float("-inf")
@@ -278,17 +257,11 @@ def get_string_parameter(model: BaseLLM,
         input_ids = model.encode(
             starting_string + "".join(
                 parameter))
-        key = tuple(input_ids)
-
-        if key in model.cache:
-            logits = model.cache[key].copy()
-        else:
-            logits = model.get_logits_from_input_ids(input_ids)
-            model.cache[key] = logits.copy()
+        logits = model.get_logits_from_input_ids(input_ids)
 
         token_id = logits.index(max(logits))
-        token_str = (model.clean_str_tokens(
-            model.decode_token(token_id)))
+        token_str = model.get_cached_token(token_id,
+                                           model.clean_str_tokens)
 
         for letter in token_str:
             parameter.append(letter)
@@ -342,6 +315,11 @@ def get_recovered_parameter(generated: str, prompt: str) -> str:
     recovered: str = ""
     if ":" in prompt:
         recovered = prompt.split(":", 1)[1].strip()
+    elif "with asterisks" in prompt:
+        if "*" in generated:
+            recovered = "*"
+        else:
+            recovered = generated
     else:
         recovered = generated
 

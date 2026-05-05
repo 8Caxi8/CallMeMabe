@@ -16,10 +16,16 @@ def format_parameters(func: FunctionsDefinition,
             string = "".join(value)
             formated_parameters[para_name] = string
         elif para_type.type == ParameterType.NUMBER:
-            number = float("".join(value))
+            try:
+                number = float("".join(value))
+            except ValueError as e:
+                raise FormatError(e)
             formated_parameters[para_name] = number
         elif para_type.type == ParameterType.INTEGER:
-            number = int("".join(value))
+            try:
+                number = int("".join(value))
+            except ValueError as e:
+                raise FormatError(e)
             formated_parameters[para_name] = number
         elif para_type.type == ParameterType.BOOLEAN:
             boolean = "".join(value).lower()
@@ -32,11 +38,18 @@ def format_parameters(func: FunctionsDefinition,
                 raise FormatError(f"[ERROR]: Invalid boolean {boolean}")
 
         elif para_type.type == ParameterType.ARRAY:
-            formated_parameters[para_name] = json.loads("".join(value))
+            try:
+                formated_parameters[para_name] = json.loads("".join(value))
+            except ValueError:
+                formated_parameters[para_name] = json.loads("[]")
+
         elif para_type.type == ParameterType.NULL:
             formated_parameters[para_name] = None
         elif para_type.type == ParameterType.OBJECT:
-            formated_parameters[para_name] = json.loads("".join(value))
+            try:
+                formated_parameters[para_name] = json.loads("".join(value))
+            except ValueError:
+                formated_parameters[para_name] = json.loads("{}")
         else:
             raise FormatError("[ERROR]: Unsupported parameter type: "
                               f"{para_type.type}")

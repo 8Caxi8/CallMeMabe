@@ -68,7 +68,7 @@ def get_parameters(func: FunctionsDefinition,
     starting_string = (
         f"{func.description}"
         f"{parameters_display}\n"
-        f"Prompt: {prompt.replace('asterisks', '*')}\n"
+        f"Prompt: {prompt}\n"
         "Your task is to COPY text, not to generate or rewrite.\n"
         "Copy the parameter EXACTLY as it appears in the prompt.\n"
         "Do NOT remove anything.\n"
