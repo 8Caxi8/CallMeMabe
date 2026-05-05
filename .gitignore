@@ -3,5 +3,4 @@
 /__pycache__
 /.mypy_cache
 *.pyc
-/moulinette
 /data/output
