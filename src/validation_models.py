@@ -43,7 +43,6 @@ def get_validated_model(functions: list[dict[str, Any]],
                         input_file: list[dict[str, Any]],
                         llm: str) \
             -> tuple[list[FunctionsDefinition], list[CallingTests], BaseLLM]:
-    validation = True
     validated_calls: list[CallingTests] = []
     validated_functions: list[FunctionsDefinition] = []
 
@@ -56,7 +55,8 @@ def get_validated_model(functions: list[dict[str, Any]],
                   f"{function.get('name', 'unknown')}:")
             for error in e.errors():
                 print(f"      {error['msg']}: {error['loc']}")
-            validation = False
+                print(f"      Instead got:{error['input']}")
+            sys.exit(2)
 
     for call in input_file:
         try:
@@ -65,8 +65,9 @@ def get_validated_model(functions: list[dict[str, Any]],
         except ValidationError as e:
             print("[Error]: Validation failed:")
             for error in e.errors():
-                print(error["msg"])
-            validation = False
+                print(f"      {error['msg']}: {error['loc']}")
+                print(f"      Instead got:{error['input']}")
+            sys.exit(2)
 
     if llm == "qwen3":
         model = Qwen3LLM(device="cpu")
@@ -76,9 +77,6 @@ def get_validated_model(functions: list[dict[str, Any]],
 
     else:
         print(f"[ERROR]: Unkown llm {llm}!")
-        validation = False
-
-    if not validation:
         sys.exit(2)
 
     return validated_functions, validated_calls, model

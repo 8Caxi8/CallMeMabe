@@ -34,7 +34,6 @@ def parser() -> tuple[list[dict[Any, Any]], list[dict[Any, Any]], str, str]:
                 raise ValueError(f"Missing value for {args[i]}")
             i += 1
             llm = args[i]
-            print(llm)
         i += 1
 
     functions = load_json(functions_path)
@@ -48,6 +47,9 @@ def load_json(path: str) -> Any:
     try:
         with open(path, encoding="utf-8") as f:
             file = json.load(f)
+
+            if not file:
+                raise ValueError(f"File in '{path}' is empty")
     except FileNotFoundError:
         raise ValueError(f"File not found: {path}")
     except json.JSONDecodeError:

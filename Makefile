@@ -1,6 +1,5 @@
 MAIN = src
-USER = dansimoe
-HF_HOME=/sgoinfre/$(USER)/.cache/huggingface
+USER := $(shell whoami)
 
 ifeq ($(wildcard /sgoinfre/$(USER)),/sgoinfre/$(USER))
     export UV_CACHE_DIR := /sgoinfre/$(USER)/.uv-cache
@@ -12,7 +11,6 @@ install:
 	uv sync
 
 run:
-	mkdir -p $HF_HOME
 	clear
 	uv run python -m $(MAIN)
 
