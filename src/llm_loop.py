@@ -1,7 +1,7 @@
 from .validation_models import FunctionsDefinition, CallingTests, ParameterType
 from .shell_prints import (print_header, print_success_outcome,
-                           print_failed_outcome, print_progress,
-                           clear_lines, print_recover)
+                           print_failed_outcome,
+                           clear_lines, print_recover, print_new_progress)
 from .format_data import format_parameters, format_output, FormatError
 from .parameter_extraction import (get_bool_parameter, get_delimiters,
                                    get_delimited_parameter,
@@ -11,18 +11,26 @@ from .parameter_extraction import (get_bool_parameter, get_delimiters,
 from .llm import BaseLLM
 from typing import Any
 
-lines = 0
-
 
 def main_loop(valid_func: list[FunctionsDefinition],
               valid_calls: list[CallingTests],
               model: BaseLLM) -> list[dict[str, Any]]:
+    """Run the function calling loop over all prompts.
+
+    Args:
+        valid_func: List of validated function definitions.
+        valid_calls: List of validated prompts to process.
+        model: The LLM wrapper to use for generation.
+
+    Returns:
+        List of dicts each containing 'prompt', 'name', and 'parameters'.
+    """
+
     output: list[dict[str, Any]] = []
-    global lines
 
     for i, call in enumerate(valid_calls):
         prompt = call.prompt
-        lines += print_header(i, prompt)
+        print_header(i, prompt)
 
         try:
             func_name = get_function_name(valid_func, prompt,
@@ -30,22 +38,22 @@ def main_loop(valid_func: list[FunctionsDefinition],
             function = next(func for func in valid_func
                             if func.name == func_name)
 
-            lines += print_progress("'\n  - 'parameters':", "")
+            print_new_progress("'\n  - 'parameters':", "")
             parameters = get_parameters(function, prompt, model)
             output.append(format_output(prompt, function.name, parameters))
 
         except FormatError as e:
-            lines = clear_lines(lines)
+            clear_lines()
             print_failed_outcome(i, prompt, str(e))
             continue
 
         except Exception as e:
-            lines = clear_lines(lines)
+            clear_lines()
             print_failed_outcome(i, prompt, str(e))
             continue
 
         else:
-            lines = clear_lines(lines)
+            clear_lines()
             print_success_outcome(output[-1])
 
     return output
@@ -54,7 +62,22 @@ def main_loop(valid_func: list[FunctionsDefinition],
 def get_parameters(func: FunctionsDefinition,
                    prompt: str,
                    model: BaseLLM) -> dict[str, Any]:
-    global lines
+    """Extract and type all parameters for a function call from a prompt.
+
+    Builds a starting string with the function description and parameter
+    types, then dispatches to a type-specific getter for each parameter.
+    String parameters that don't appear verbatim in the prompt are passed
+    through the recovery fallback.
+
+    Args:
+        func: The function definition whose parameters are being extracted.
+        prompt: The original natural language prompt.
+        model: The LLM wrapper to use for constrained generation.
+
+    Returns:
+        Mapping of parameter names to their typed Python values.
+    """
+
     parameters_display = "\n".join(
         f"- {key}: {value.type.value}"
         for key, value in func.parameters.items()
@@ -83,7 +106,7 @@ def get_parameters(func: FunctionsDefinition,
         parameter_type = param_def.type
         param = f"\n- {param_name} is "
 
-        lines += print_progress(f"\n    - '{param_name}': \"", "")
+        print_new_progress(f"\n    - '{param_name}': \"", "")
 
         if parameter_type == ParameterType.NUMBER:
             parameters[param_name] = get_number_parameter(
@@ -111,8 +134,8 @@ def get_parameters(func: FunctionsDefinition,
             if generated not in prompt:
                 recovered = get_recovered_parameter(generated, prompt)
                 if recovered != generated:
-                    lines += print_recover("[WARNING]: Recovering llm output"
-                                           f" to '{recovered}'...", "")
+                    print_recover("Recovering llm output"
+                                  f" to '{recovered}'...", "")
                 parameters[param_name] = list(recovered)
 
             else:

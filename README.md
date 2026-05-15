@@ -9,13 +9,13 @@ In this project we will use a relatively small language model, the **Qwen3-0.6B*
 On the other hand, due to the limited size of the model, constrained decoding is applied to ensure reliable and structured outputs, producing a **>90%** accuracy for a set of prompts and a **100%** accuracy for `JSON` generated files as the output for the function calls.
 
 Next is an example of a function call output for a given prompt:
-```bash
+```json
 [
-	{
-		"prompt": "What is the sum of 2 and 3?",
-		"name": "fn_add_numbers",
-		"parameters": {"a": 2.0, "b": 3.0}
-	}
+  {
+    "prompt": "What is the sum of 2 and 3?",
+    "name": "fn_add_numbers",
+    "parameters": {"a": 2.0, "b": 3.0}
+  }
 ]
 ```
 
@@ -23,168 +23,215 @@ Next is an example of a function call output for a given prompt:
 
 All the relevant commands are the makefile rules:
 ```bash
-make install # Installs the VM with its required dependencies
-```
-```bash
-make run # Runs the program with its defaults input and output files
-```
-```bash
-make debug # Runs the program in a debug mode
-```
-```bash
-make clean # Clean the __pycache__, .mypy_cache and .*pyc files
-```
-```bash
-make lint # Executes the flake8 and mypy validation
-```
-```bash
-make lint-strict # Executes the flake8 and mypy in strict mode validation
+make install     # Installs the virtual environment with its required dependencies
+make run         # Runs the program with its default input and output files
+make debug       # Runs the program with Python's pdb debugger in verbose mode
+make verbose     # Runs the program with verbose mode showing constrained decoding steps
+make clean       # Cleans __pycache__, .mypy_cache and .pyc files
+make lint        # Executes flake8 and mypy validation
+make lint-strict # Executes flake8 and mypy in strict mode
 ```
 
-To change the paths of the files just add:
-- --input <input_file>
-- --output <output_file>
-- --functions_definition <function_definition_file>
-
-and run:
+To change the paths of the files or select a different model:
 ```bash
-uv run python -m src [--functions_definition <...> ...]
+uv run python -m src \
+  [--functions_definition <function_definition_file>] \
+  [--input <input_file>] \
+  [--output <output_file>] \
+  [--llm <qwen3|qwen2>] \
+  [--verbose]
 ```
+
+**Arguments:**
+- `--input` — path to the JSON file containing prompts (default: `data/input/function_calling_tests.json`)
+- `--output` — path for the output JSON file (default: `data/output/function_calling_results.json`)
+- `--functions_definition` — path to the functions definition JSON file (default: `data/input/functions_definition.json`)
+- `--llm` — model to use, either `qwen3` (default) or `qwen2`
+- `--verbose` — enable debug mode showing constrained decoding steps (token selected, logit score, masked count)
 
 # Code
+
 ## Algorithm Explanation
-- To guarantee **100%** valid `JSON` output, I apply constrained decoding to all semantic elements (function name and parameters), and then assemble the final `JSON` structure deterministically. This avoids structural errors from the language model.
 
-So in short for each prompt I loop for:
-```bash
-	get_function_name()
-	get_parameters()
-	format_output()
-	output.append(result)
+To guarantee **100%** valid `JSON` output, constrained decoding is applied to all semantic elements (function name and parameters), and then the final `JSON` structure is assembled deterministically. This avoids structural errors from the language model.
+
+For each prompt the loop runs:
 ```
-where output is a `list` and the result is the `dict` with each key being the `prompt`, `name` and the `parameters`.
+get_function_name()
+get_parameters()
+format_output()
+output.append(result)
+```
+where `output` is a `list` and each result is a `dict` with keys `prompt`, `name`, and `parameters`.
 
-- If any error is encountered when getting any of the elements or in the format section, I discard this result and move to the next.
-
+If any error is encountered during extraction or formatting, that result is discarded and the loop moves to the next prompt.
 
 ### Constrained Decoding Strategy
+
 At each generation step:
-- The model produces logits for all tokens
+- The model produces logits for all tokens in the vocabulary
 - Invalid tokens (those not matching the expected structure or type) are masked by setting their logits to `-inf`
 - The next token is selected only from the remaining valid tokens
 
 This guarantees that:
-- Function names always match available definitions
+- Function names always match one of the available definitions
 - Parameter values respect their expected types
 - Invalid tokens are never selected
 
----
-
-This approach ensures that all generated outputs are both semantically valid (through constrained decoding) and structurally valid (through deterministic formatting).
-
 ## Design Decisions
-- The biggest decision was to use the llm just to output the function name and the parameters extracted from the prompt.
 
-- Also, I used the `pydantic` model to ensure each of the functions were well defined with all the parameters and correct types for a `JSON` file. This also ensure the main loop was working, since for example I had to use the function descriptions for the llm usage.
+The biggest decision was to use the LLM only to output the function name and extract the parameters from the prompt — not to generate any free-form text.
 
-- So the key for using the `llm_sdk` package was to give the model a detailed message of was requested, in the case of the `get_function_name`, the initial message given to the model is:
-```bash
+`pydantic` models are used to validate each function definition, ensuring all parameters have correct types before the main loop runs.
+
+### Function Name Selection
+
+The starting string given to the model for function name selection is:
+
+```python
 starting_string = (
-            f"{descriptions}\n" 			# funcion.name: function.description
-            f"Prompt: {prompt}\n" 			# prompt used
-            f"Function to use: {func_name}" # being guessed by the llm
-        )
+    "You have to select the correct function by what is "
+    "given in the prompt.\n"
+    "Select a function name by keywords in the prompt "
+    "EXACTLY as they are written.\n"
+    f"{descriptions}\n"        # - function_name: description
+    f"Prompt: {prompt}\n"
+    f"Function to use: {func_name}"  # being built token by token
+)
 ```
-This message was passed to llm each time I appended a token, to ensure the next highest value token was the correct one. To ensure the function was a valid function, I only accepted tokens if they correctly described a possible function name from the available functions.
 
-- For the `get_parameters`the initial message used is:
-```bash
+This message is re-submitted to the model each time a token is appended, so the model always has the full context of what has been generated so far. A token is only accepted if it extends a valid function name prefix — otherwise its logit is set to `-inf` and the next best token is tried.
+
+### Parameter Extraction
+
+The starting string for parameter extraction is:
+
+```python
 starting_string = (
-        f"{parameters_display}\n"					# parameters: parameters type
-        f"Prompt: {prompt}\n"						# prompt used
-        f"Parameter from prompt (ended with \"):"	# each parameter to be guessed by llm
-    )
+    f"{func.description}"
+    f"{parameters_display}\n"       # - param_name: param_type
+    f"Prompt: {prompt}\n"
+    "Your task is to COPY text, not to generate or rewrite.\n"
+    "Copy the parameter EXACTLY as it appears in the prompt.\n"
+    "Do NOT remove anything.\n"
+    "Character-by-character copy.\n"
+    f"Parameter (start and end with \"):"
+)
 ```
-Notice for example the need to `(ended with \")` So the llm knows it needs to end the guessed parameter with the `"` token, and I use this to stop the llm loop.
 
-- Although the prompt is used to guide the model semantically, I enforce correctness through constrained decoding rather than relying  on the model to produce valid outputs autonomously.
+The `(ended with \")` instruction tells the model it must close the parameter with a `"` token, which is used as the stop condition for the generation loop. Each parameter is extracted with a type-specific getter:
 
-- For each parameter, a type-specific getter is called:
-	- `STRING` - generates until closing `"`.
-	- `NUMBER` - only allows numeric tokens and `.`, generates until closing `"`
-	- `INTEGER` - only allows numeric tokens without `.`, generates until closing `"`
-	- `ARRAY` - uses `[`/`]` as delimiters, letter-by-letter scanning
-	- `OBJECT` - uses `{`/`}` as delimiters, same approach as array
-	- `BOOLEAN` - constrains output to only `true`/`false` tokens
-	- `NULL` - returns `None` directly, no generation needed
+- `STRING` — generates until closing `"`
+- `NUMBER` — only allows numeric tokens and `.` and `-`, generates until closing `"`
+- `INTEGER` — only allows numeric tokens and `-` without `.`, generates until closing `"`
+- `ARRAY` — uses `[`/`]` as delimiters, letter-by-letter scanning
+- `OBJECT` — uses `{"` /`}` as delimiters, same approach as array
+- `BOOLEAN` — constrains output strictly to `true`/`false` tokens
+- `NULL` — returns `None` directly, no generation needed
+
+Although the prompt guides the model semantically, correctness is enforced through constrained decoding rather than relying on the model to produce valid outputs autonomously.
+
+## Bonus Features
+
+### Multi-model Support
+The project supports two models via the `--llm` flag:
+- `qwen3` (default) — Qwen/Qwen3-0.6B, better accuracy
+- `qwen2` — Qwen/Qwen2-0.5B, faster but lower accuracy
+
+Both models go through the `llm_sdk` package, with model-specific token cleaning to handle the different special characters each tokenizer uses (`Ġ`, `Ċ` for Qwen3 vs `Ġ`, `▁`, `\n` for Qwen2).
+
+### Verbose Debug Mode
+Running with `--verbose` (or `make debug`) reveals the full constrained decoding process at each step:
+
+```
+[CONSTRAINED] selected: 'add' (logit: 21.96) | masked: 0 | valid candidates: 151936
+[CONSTRAINED] selected: '_numbers' (logit: 29.69) | masked: 0 | valid candidates: 151936
+```
+
+This shows which token was selected, its logit score, how many tokens were masked as invalid, and how many valid candidates remained. This is particularly useful for understanding why the model makes certain selections and for debugging edge cases.
+
+### Token Caching
+All decoded tokens are cached in `BaseLLM` via `get_cached_token()`, avoiding redundant decode calls for the same token ID across generation steps. This significantly reduces processing time for longer sequences.
+
+### Partial Tokenizer Implementation
+The vocabulary JSON file (`get_path_to_vocab_file()`) is loaded manually and used to implement custom `decode_token()` — returning token strings by ID without relying on the SDK's decode method. This gives full control over token normalization and the special character cleaning applied per model.
 
 ## Performance Analysis
-- For the speed, the model was relatively fast for guessing the solutions. As for accuracy, I needed several tests, with several initial `starting_string` to ensure the model was guessing right. The function name was easy to retrieve, but the parameters were more tricky. 
 
-- Boolean extraction proved challenging due to model bias toward `"true"`. This highlights limitations of small models and the importance of stronger constraints in such cases. I even added a `(true/false)` statement at the beginning of guessing the right input, but the highest token is always `true` even when I give it a false in the prompt to help it guess. So if I wanted to use make this more reliable in this section I should add a set of negative tokens and help the model to use this set to see if in the prompt any keywords were in this set, and in this manner it should look for negative keywords and return `false`. But as stated in the subject I should use the `llm`, not *'with heuristics or any other sort of medieval magic'*
+Qwen3-0.6B achieves near **100%** accuracy on the standard test set and performs well on most edge cases. Qwen2-0.5B performs noticeably worse, particularly on function selection for ambiguous prompts.
+
+**Known limitations and edge cases:**
+- Unconventional number formats like `-.5` or `.25` (leading decimal without zero) — the model picks the digit token directly, missing the sign or decimal prefix
+- Empty string arguments — when the prompt contains an empty string (e.g. `Reverse ''`), the model always generates something rather than an empty parameter
+- Completely unrelated prompts (e.g. `Greet @#$%`) — defaults to the first available function
+- Boolean extraction is biased toward `true` — the model consistently selects `true` as the highest-probability token even when the prompt suggests `false`
+- Scientific notation like `1e10` is not fully supported — extracts `10` instead of `1e10`
+
+For speed, the model processes the standard 11-prompt test set in under a minute on CPU. Larger test sets with complex regex patterns take longer due to the token-by-token generation approach.
 
 ## Challenges Faced
-- The challenges I had were mainly in the getting the correct parameters from the prompt. I ultimately used a simple starting string for each parameter, where I used a display of each parameter, the prompt next (and the order matters, since the llm will have this prompt close to the guessed answer), and the parameter to be guessed. Here I also filter the parameter to be guessed by the `llm` if there is more than one. So, for example fo the regex function:
-```bash
-[
-  {
-    "name": "fn_substitute_string_with_regex",
-    "description": "Replace all occurrences matching a regex pattern in a string.",
-    "parameters": {
-      "source_string": {
-        "type": "string"
-      },
-      "regex": {
-        "type": "string"
-      },
-      "replacement": {
-        "type": "string"
-      }
-    },
-    "returns": {
-      "type": "string"
-    }
-  }
-]
-```
-what the llm sees when is guessing each parameter is:
+
+The main challenges were in getting correct parameters from the prompt. The final solution uses a structured starting string that places the prompt immediately before the parameter being guessed, so the model has maximum context when making its selection.
+
+For the regex function with three parameters (`source_string`, `regex`, `replacement`), the model sees a different starting string for each parameter, with the parameter name appended at the end:
 
 [![asciicast](https://asciinema.org/a/25dgE7vipDSQ8FZw.svg)](https://asciinema.org/a/25dgE7vipDSQ8FZw)
 
-- Special Tokens (like `Ġ` or `Ċ`) were normalized and used when needed.
+Special tokens like `Ġ` (space prefix) and `Ċ` (newline) needed to be normalized differently per model, since Qwen3 and Qwen2 use different tokenizer conventions.
 
-- This model also is known for infinite loops, and being repeatedly generating the same tokens, so I solved this using maximum iteration limits.
+Infinite loops were a recurring issue — the model would repeatedly generate the same token when stuck. This was solved with `MAX_LOOP_ITER` and `MAX_TOKENS` limits, with fallback values returned when limits are hit.
 
 ## Testing Strategy
-- I tested with the provided 11-prompt, which I get near **100%** accuracy for function selection and argument extraction.
-- I created more input for testing other types like `object` type, `boolean` type and `int` type. When testing the different types I realized I should have different functions for extracting this types, and this were created at `parameter_extraction.py`.
-- For debugging and understanding what was being selected, some print custom functions were created to create print at running time to the prompt what was being selected as well if any errors had occured:
+
+Testing was done with multiple input files covering different scenarios:
+
+- `function_calling_tests.json` — the standard 11-prompt test set, near 100% accuracy
+- `edge_cases.json` — 38 edge cases including empty prompts, garbage input, missing arguments, and unusual number formats
+- `hard_prompts.json` — ambiguous prompts where the function is implied but not named explicitly
+- `regex_tests.json` — regex-specific prompts testing pattern extraction
+- `tests2.json` — extended general tests including palindrome and boolean checks
+- `function_calling_moulinette.json` — prompts matching the likely evaluator test set
+- `object.json` — object parameter extraction tests
+- `functions_advanced.json` — tests with boolean, array, and object parameter types
+
+The verbose debug mode was used throughout to inspect which tokens were being selected and why, making it straightforward to identify and fix prompt engineering issues.
 
 ## Example Usage
 
 ```bash
-# run with default files
+# Run with default files
 make run
 
-# run with custom files
+# Run with verbose debug output showing constrained decoding steps
+make verbose
+
+# Run with pdb debugger
+make debug
+
+# Run with custom files and Qwen2 model
 uv run python -m src \
   --functions_definition data/input/functions_definition.json \
   --input data/input/function_calling_tests.json \
-  --output data/output/function_calls.json
+  --output data/output/function_calls.json \
+  --llm qwen2
+
+# Run with verbose mode
+uv run python -m src --verbose
 ```
 
 [![asciicast](https://asciinema.org/a/wtzUeFp3dzOjSPRR.svg)](https://asciinema.org/a/wtzUeFp3dzOjSPRR)
 
-
 ## Resources
 
-- [Qwen3 Model](https://huggingface.co/Qwen/Qwen3-0.6B)
+- [Qwen3-0.6B Model](https://huggingface.co/Qwen/Qwen3-0.6B)
+- [Qwen2-0.5B Model](https://huggingface.co/Qwen/Qwen2-0.5B)
 - [JSON Schema Types](https://json-schema.org/understanding-json-schema/reference/type)
 - [Pydantic Documentation](https://docs.pydantic.dev)
 - [LLM Explained](https://www.youtube.com/watch?v=LPZh9BOjkQs&t=9s)
+- [Constrained Decoding Overview](https://huggingface.co/blog/constrained-beam-search)
 
 ## AI Usage
-- Claude was used to:
-	- Debugging token generation logic
-	- Code review for main llm loop
-	- Prompt engineering for parameter extraction at the parameter extration function
+
+AI was used to:
+- Debugging the `Qwen2LLM` import.
+- Identifying edge cases and known limitations from test output analysis

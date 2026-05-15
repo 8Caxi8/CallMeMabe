@@ -4,11 +4,24 @@ import json
 
 
 class FormatError(Exception):
+    """Raised when a parameter value cannot be cast to its expected type."""
     pass
 
 
 def format_parameters(func: FunctionsDefinition,
                       parameters: dict[str, list[str]]) -> dict[str, Any]:
+    """Convert raw token lists into typed Python values.
+
+    Args:
+        func: The validated function definition containing parameter types.
+        parameters: Mapping of parameter names to their raw token lists.
+
+    Returns:
+        Mapping of parameter names to their typed Python values.
+
+    Raises:
+        FormatError: If a value cannot be cast to its declared type.
+    """
     formated_parameters: dict[str, Any] = {}
     for para_name, para_type in func.parameters.items():
         value = parameters.get(para_name, [])
@@ -59,6 +72,16 @@ def format_parameters(func: FunctionsDefinition,
 
 def format_output(prompt: str, function: str,
                   parameters: dict[str, Any]) -> dict[str, Any]:
+    """Assemble the final output dict for a single function call.
+
+    Args:
+        prompt: The original natural language prompt.
+        function: The selected function name.
+        parameters: The typed parameter values.
+
+    Returns:
+        Dict with keys 'prompt', 'name', and 'parameters'.
+    """
     return {
         "prompt": prompt,
         "name": function,

@@ -2,12 +2,19 @@ import sys
 from .parser import parser, output_json
 from .validation_models import get_validated_model
 from .llm_loop import main_loop
-from .shell_prints import print_output
+from .shell_prints import print_output, set_verbose
 
 
 def main() -> None:
+    """Entry point for the function calling tool.
+
+    Parses CLI arguments, initializes the LLM model, runs the main
+    generation loop over all prompts, and writes the results to the
+    output JSON file. Exits with code 1 on argument or unexpected errors.
+    """
     try:
-        functions, input_file, output_file_path, llm = parser()
+        functions, input_file, output_file_path, llm, verbose = parser()
+        set_verbose(verbose)
 
     except ValueError as e:
         print(e)

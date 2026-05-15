@@ -1,5 +1,4 @@
 /.venv
-/llm_sdk
 /__pycache__
 /.mypy_cache
 *.pyc

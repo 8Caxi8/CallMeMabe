@@ -1,5 +1,7 @@
 MAIN = src
+PY = python3
 USER := $(shell whoami)
+UV := $(shell which uv 2>/dev/null || echo "$$HOME/.local/bin/uv")
 
 ifeq ($(wildcard /sgoinfre/$(USER)),/sgoinfre/$(USER))
     export UV_CACHE_DIR := /sgoinfre/$(USER)/.uv-cache
@@ -8,14 +10,18 @@ ifeq ($(wildcard /sgoinfre/$(USER)),/sgoinfre/$(USER))
 endif
 
 install:
-	uv sync
+	@which uv > /dev/null 2>&1 || curl -LsSf https://astral.sh/uv/install.sh | sh
+	@$$HOME/.local/bin/uv sync
 
 run:
 	clear
-	uv run python -m $(MAIN)
+	$(UV) run $(PY) -m $(MAIN)
 
 debug:
-	uv run python -m pdb -m $(MAIN)
+	$(UV) run $(PY) -m pdb -m $(MAIN) --verbose
+
+verbose:
+	$(UV) run $(PY) -m $(MAIN) --verbose
 
 clean:
 	find . -name "__pycache__" -print -exec rm -rf {} +
@@ -23,11 +29,11 @@ clean:
 	find . -name "*.pyc" -print -delete
 
 lint:
-	uv run flake8 --exclude=.venv,llm_sdk .
-	uv run mypy . --exclude '\.venv|llm_sdk' --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
+	$(UV) run flake8 --exclude=.venv,llm_sdk .
+	$(UV) run mypy . --exclude '\.venv|llm_sdk' --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
 
 lint-strict:
-	uv run flake8 --exclude=.venv,llm_sdk .
-	uv run mypy . --exclude '\.venv|llm_sdk' --strict
+	$(UV) run flake8 --exclude=.venv,llm_sdk .
+	$(UV) run mypy . --exclude '\.venv|llm_sdk' --strict
 
-.PHONY: install run debug clean lint lint-strict
+.PHONY: install run debug clean lint lint-strict verbose

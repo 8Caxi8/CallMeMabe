@@ -7,10 +7,14 @@ import sys
 
 
 class CallingTests(BaseModel):
+    """Pydantic model for validating a single prompt entry from the
+    input file.
+    """
     prompt: str
 
 
 class ParameterType(str, Enum):
+    """Supported parameter types for function definitions."""
     STRING = "string"
     NUMBER = "number"
     BOOLEAN = "boolean"
@@ -21,10 +25,16 @@ class ParameterType(str, Enum):
 
 
 class Parameter(BaseModel):
+    """Pydantic model for a single function parameter with its type."""
     type: ParameterType
 
 
 class FunctionsDefinition(BaseModel):
+    """Pydantic model for a complete function definition.
+
+    Validates that the function name starts with 'fn_' and that
+    all parameters and return type use supported ParameterTypes.
+    """
     name: str
     description: str
     parameters: dict[str, Parameter]
@@ -32,6 +42,11 @@ class FunctionsDefinition(BaseModel):
 
     @model_validator(mode='after')
     def validate_function(self) -> "FunctionsDefinition":
+        """Validate that the function name starts with 'fn_'.
+
+        Raises:
+            PydanticCustomError: If the name does not start with 'fn_'.
+        """
         if not self.name.startswith("fn_"):
             raise Pe("starting_name_error",
                      f"Function name {self.name} must start with: 'fn_'")
@@ -43,8 +58,23 @@ def get_validated_model(functions: list[dict[str, Any]],
                         input_file: list[dict[str, Any]],
                         llm: str) \
             -> tuple[list[FunctionsDefinition], list[CallingTests], BaseLLM]:
+    """Validate all function definitions and prompts, and initialize the LLM.
+
+    Exits with code 2 if any function definition or prompt fails validation,
+    or if the requested LLM name is not recognized.
+
+    Args:
+        functions: Raw list of function definition dicts from the JSON file.
+        input_file: Raw list of prompt dicts from the input JSON file.
+        llm: The model name to initialize, either 'qwen3' or 'qwen2'.
+
+    Returns:
+        Tuple of (validated_functions, validated_calls, model).
+    """
+
     validated_calls: list[CallingTests] = []
     validated_functions: list[FunctionsDefinition] = []
+    model: BaseLLM
 
     for function in functions:
         try:
