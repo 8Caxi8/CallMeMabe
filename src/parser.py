@@ -51,6 +51,13 @@ def parser() -> tuple[list[dict[Any, Any]],
             llm = args[i]
         elif args[i] == "--verbose":
             verbose = True
+        elif args[i].startswith("--"):
+            raise ValueError(f"Unknown flag {args[i]}. Supports the flags:\n"
+                             "    --input;\n"
+                             "    --output;\n"
+                             "    --functions_definition;\n"
+                             "    --llm;\n"
+                             "    --verbose.")
         i += 1
 
     functions = load_json(functions_path)
